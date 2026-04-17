@@ -1,0 +1,18 @@
+services:
+  raptorr:
+    build: .
+    image: raptorr:latest
+    container_name: raptorr
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./data:/data
+    environment:
+      # Optional overrides:
+      # SECRET_KEY: "provide-for-stable-sessions-across-restarts"
+      # UNIFI_BASE_URL: "https://api.ui.com"
+      # UNIFI_API_PREFIX: "/ea"
+      # SESSION_TTL_HOURS: "168"
+      # CACHE_TTL_SECONDS: "30"
+      TZ: ${TZ:-UTC}
