@@ -1,5 +1,6 @@
 import asyncio
 import time
+from datetime import datetime, timedelta, timezone
 from typing import Any
 
 import httpx
@@ -87,8 +88,18 @@ class UniFiClient:
                 break
         return results
 
-    async def list_devices(self, host_ids: list[str] | None = None) -> list[dict]:
-        params: dict[str, Any] = {}
+    async def list_devices(
+        self,
+        host_ids: list[str] | None = None,
+        since_days: int = 30,
+    ) -> list[dict]:
+        # The "time" parameter is an RFC3339 timestamp: only devices whose
+        # last-processed time is at or after this value are returned. A wide
+        # window (default 30 days) effectively returns every known device.
+        since = (datetime.now(timezone.utc) - timedelta(days=since_days)).strftime(
+            "%Y-%m-%dT%H:%M:%SZ"
+        )
+        params: dict[str, Any] = {"time": since}
         if host_ids:
             params["hostIds[]"] = host_ids
         data = await self._get("/devices", params=params)

@@ -40,17 +40,39 @@ def _console_links(host_id: str | None, host_meta: dict) -> dict[str, str | None
 
 
 def _site_id(site: dict) -> str | None:
-    return site.get("siteId") or site.get("id")
+    return site.get("siteId") or site.get("id") or site.get("site_id")
 
 
 def _site_name(site: dict) -> str | None:
+    # Site Manager has shifted this around; try every reasonable spot.
     meta = site.get("meta") if isinstance(site.get("meta"), dict) else {}
-    return (
+    internal = (
+        site.get("internalReference")
+        if isinstance(site.get("internalReference"), dict)
+        else {}
+    )
+    reported = (
+        site.get("reportedState")
+        if isinstance(site.get("reportedState"), dict)
+        else {}
+    )
+    desc = meta.get("desc") or meta.get("description")
+    name = (
         meta.get("name")
-        or meta.get("desc")
+        or reported.get("name")
+        or internal.get("name")
         or site.get("siteName")
         or site.get("name")
+        or site.get("displayName")
+        or desc
     )
+    if name:
+        return name
+    # Last resort: expose something readable so the UI doesn't show blanks.
+    sid = _site_id(site)
+    if sid:
+        return f"site {sid[-8:]}" if len(sid) > 8 else f"site {sid}"
+    return None
 
 
 def _host_id_of(host: dict) -> str | None:
@@ -231,7 +253,11 @@ async def _load_all(db: Session):
     sites = await cache.get_or_set("sites", client.list_sites)
     host_ids = [hid for h in hosts if (hid := _host_id_of(h))]
     devices_payload = await cache.get_or_set(
-        "devices", lambda: client.list_devices(host_ids=host_ids)
+        "devices",
+        lambda: client.list_devices(
+            host_ids=host_ids,
+            since_days=settings.unifi_device_window_days,
+        ),
     )
     return hosts, sites, devices_payload
 
@@ -270,6 +296,55 @@ async def search_devices(
 async def refresh_cache(_: User = Depends(require("devices:read"))):
     cache.invalidate()
     return {"ok": True}
+
+
+def _sample(payload, limit: int = 2):
+    """Return a trimmed sample so the debug blob stays small."""
+    if isinstance(payload, list):
+        return payload[:limit]
+    if isinstance(payload, dict):
+        data = payload.get("data")
+        if isinstance(data, list):
+            return {**{k: v for k, v in payload.items() if k != "data"}, "data": data[:limit]}
+    return payload
+
+
+@router.get("/_debug")
+async def debug_raw(
+    _: User = Depends(require("settings:manage")),
+    db: Session = Depends(get_session),
+):
+    """Return trimmed raw responses from each upstream call. Admin-only."""
+    hosts, sites, devices_payload = await _load_all(db)
+    return {
+        "hosts": {
+            "count": len(hosts),
+            "sample": _sample(hosts, 2),
+            "sample_top_keys": sorted((hosts[0].keys() if hosts else [])),
+            "sample_reported_state_keys": sorted(
+                (hosts[0].get("reportedState", {}).keys() if hosts and isinstance(hosts[0].get("reportedState"), dict) else [])
+            ),
+        },
+        "sites": {
+            "count": len(sites),
+            "sample": _sample(sites, 3),
+            "sample_top_keys": sorted((sites[0].keys() if sites else [])),
+        },
+        "devices": {
+            "count_hosts": len(devices_payload),
+            "total_devices": sum(len(e.get("devices", [])) for e in devices_payload),
+            "sample_entry_top_keys": sorted(devices_payload[0].keys()) if devices_payload else [],
+            "sample_device_top_keys": sorted(
+                devices_payload[0]["devices"][0].keys()
+            ) if devices_payload and devices_payload[0].get("devices") else [],
+            "sample_entry": _sample(devices_payload, 1),
+        },
+        "settings": {
+            "base_url": settings.unifi_base_url,
+            "prefix": settings.unifi_api_prefix,
+            "device_window_days": settings.unifi_device_window_days,
+        },
+    }
 
 
 @router.get("/sites")

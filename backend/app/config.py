@@ -25,6 +25,7 @@ class Settings(BaseSettings):
     session_ttl_hours: int = 24 * 7
     unifi_base_url: str = "https://api.ui.com"
     unifi_api_prefix: str = "/ea"
+    unifi_device_window_days: int = 30
     cache_ttl_seconds: int = 30
 
     class Config:
