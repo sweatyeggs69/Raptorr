@@ -1,5 +1,14 @@
-import { ArrowLeft, ChevronDown, ChevronRight, ExternalLink, Server } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
+import {
+  ArrowDown,
+  ArrowLeft,
+  ArrowUp,
+  ArrowUpDown,
+  ExternalLink,
+  Info,
+  Search,
+  Server,
+} from "lucide-react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { api, ApiError } from "../api";
 import PageHeader from "../components/PageHeader";
@@ -12,6 +21,8 @@ type Device = {
   ip: string | null;
   firmware: string | null;
   status: string | null;
+  is_online: boolean | null;
+  device_type: string;
   uptime_sec: number | null;
   site_id: string | null;
   site_name: string | null;
@@ -21,8 +32,7 @@ type Site = {
   id: string | null;
   name: string | null;
   host_id: string | null;
-  device_count: number;
-  devices: Device[];
+  statistics: unknown;
 };
 
 type HostDetail = {
@@ -36,19 +46,30 @@ type HostDetail = {
     console_local_url: string | null;
   };
   sites: Site[];
+  site_count: number;
+  devices: Device[];
   total_devices: number;
+  note?: string;
 };
 
-function statusBadge(status: string | null) {
-  if (!status) return <span className="badge">unknown</span>;
-  const s = status.toLowerCase();
-  if (s.includes("online") || s.includes("connected") || s === "1") {
-    return <span className="badge badge-ok">{status}</span>;
+type SortKey =
+  | "name"
+  | "device_type"
+  | "is_online"
+  | "model"
+  | "ip"
+  | "mac"
+  | "uptime_sec";
+type SortDir = "asc" | "desc";
+
+function statusBadge(d: Device) {
+  if (d.is_online === true) {
+    return <span className="badge badge-ok">{d.status || "online"}</span>;
   }
-  if (s.includes("offline") || s.includes("disconnected") || s === "0") {
-    return <span className="badge badge-bad">{status}</span>;
+  if (d.is_online === false) {
+    return <span className="badge badge-bad">{d.status || "offline"}</span>;
   }
-  return <span className="badge badge-warn">{status}</span>;
+  return <span className="badge badge-warn">{d.status || "unknown"}</span>;
 }
 
 function fmtUptime(sec: number | null) {
@@ -61,11 +82,56 @@ function fmtUptime(sec: number | null) {
   return `${m}m`;
 }
 
+function compare(a: Device, b: Device, key: SortKey, dir: SortDir): number {
+  const sign = dir === "asc" ? 1 : -1;
+  if (key === "is_online") {
+    const rank = (v: boolean | null) => (v === true ? 0 : v === null ? 1 : 2);
+    return (rank(a.is_online) - rank(b.is_online)) * sign;
+  }
+  if (key === "uptime_sec") {
+    return ((a.uptime_sec ?? -1) - (b.uptime_sec ?? -1)) * sign;
+  }
+  const av = (a[key] as string | null) ?? "";
+  const bv = (b[key] as string | null) ?? "";
+  return av.localeCompare(bv, undefined, { numeric: true }) * sign;
+}
+
+function SortableTh({
+  label,
+  field,
+  sort,
+  onToggle,
+}: {
+  label: string;
+  field: SortKey;
+  sort: { key: SortKey; dir: SortDir };
+  onToggle: (k: SortKey) => void;
+}) {
+  const active = sort.key === field;
+  const Icon = active ? (sort.dir === "asc" ? ArrowUp : ArrowDown) : ArrowUpDown;
+  return (
+    <th className="th">
+      <button
+        onClick={() => onToggle(field)}
+        className={`inline-flex items-center gap-1 ${active ? "text-ink-900" : "text-ink-500"} hover:text-ink-900`}
+      >
+        <span>{label}</span>
+        <Icon size={12} />
+      </button>
+    </th>
+  );
+}
+
 export default function HostDetailPage() {
   const { hostId } = useParams<{ hostId: string }>();
   const [data, setData] = useState<HostDetail | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [openSites, setOpenSites] = useState<Set<string>>(new Set());
+  const [q, setQ] = useState("");
+  const [siteQ, setSiteQ] = useState("");
+  const [sort, setSort] = useState<{ key: SortKey; dir: SortDir }>({
+    key: "name",
+    dir: "asc",
+  });
 
   const load = useCallback(async () => {
     if (!hostId) return;
@@ -75,12 +141,6 @@ export default function HostDetailPage() {
         `/api/devices/hosts/${encodeURIComponent(hostId)}`
       );
       setData(res);
-      // expand first site by default
-      if (res.sites[0]?.id) {
-        setOpenSites(new Set([res.sites[0].id]));
-      } else if (res.sites[0]) {
-        setOpenSites(new Set(["__unassigned"]));
-      }
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Load failed");
     }
@@ -90,12 +150,35 @@ export default function HostDetailPage() {
     load();
   }, [load]);
 
-  function toggle(key: string) {
-    const next = new Set(openSites);
-    if (next.has(key)) next.delete(key);
-    else next.add(key);
-    setOpenSites(next);
-  }
+  const toggleSort = (key: SortKey) => {
+    setSort((prev) =>
+      prev.key === key
+        ? { key, dir: prev.dir === "asc" ? "desc" : "asc" }
+        : { key, dir: "asc" }
+    );
+  };
+
+  const filteredDevices = useMemo(() => {
+    if (!data) return [];
+    const needle = q.trim().toLowerCase();
+    const filtered = needle
+      ? data.devices.filter((d) =>
+          [d.name, d.mac, d.ip, d.model, d.status, d.device_type]
+            .filter(Boolean)
+            .some((v) => String(v).toLowerCase().includes(needle))
+        )
+      : data.devices;
+    return [...filtered].sort((a, b) => compare(a, b, sort.key, sort.dir));
+  }, [data, q, sort]);
+
+  const filteredSites = useMemo(() => {
+    if (!data) return [];
+    const needle = siteQ.trim().toLowerCase();
+    if (!needle) return data.sites;
+    return data.sites.filter((s) =>
+      (s.name || "").toLowerCase().includes(needle)
+    );
+  }, [data, siteQ]);
 
   if (!hostId) return null;
 
@@ -105,7 +188,7 @@ export default function HostDetailPage() {
         title={data?.host.name || "Console"}
         subtitle={
           data
-            ? `${data.host.type || "UniFi OS"} · ${data.host.version || "—"} · ${data.total_devices} device${data.total_devices === 1 ? "" : "s"} across ${data.sites.length} site${data.sites.length === 1 ? "" : "s"}`
+            ? `${data.host.type || "UniFi OS"} · ${data.host.version || "—"} · ${data.total_devices} device${data.total_devices === 1 ? "" : "s"} · ${data.site_count} site${data.site_count === 1 ? "" : "s"}`
             : "Loading…"
         }
         actions={
@@ -146,81 +229,114 @@ export default function HostDetailPage() {
           </div>
         )}
 
-        {data && data.sites.length === 0 && (
-          <div className="card p-6 text-sm text-ink-500">
-            No sites found on this console.
+        {data?.note && (
+          <div className="mb-4 flex items-start gap-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
+            <Info size={14} className="mt-0.5 shrink-0" />
+            <span>{data.note}</span>
           </div>
         )}
 
-        <div className="space-y-3">
-          {data?.sites.map((s) => {
-            const key = s.id || "__unassigned";
-            const isOpen = openSites.has(key);
-            return (
-              <div key={key} className="card overflow-hidden">
-                <button
-                  onClick={() => toggle(key)}
-                  className="flex w-full items-center justify-between px-5 py-3 hover:bg-ink-50"
-                >
-                  <div className="flex items-center gap-2">
-                    {isOpen ? (
-                      <ChevronDown size={16} className="text-ink-500" />
-                    ) : (
-                      <ChevronRight size={16} className="text-ink-500" />
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,260px)_minmax(0,1fr)]">
+          {/* Sites */}
+          <div>
+            <div className="mb-2 flex items-center justify-between">
+              <h2 className="text-sm font-semibold text-ink-900">
+                Sites ({data?.site_count ?? 0})
+              </h2>
+            </div>
+            <div className="relative mb-2">
+              <Search
+                size={14}
+                className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-ink-400"
+              />
+              <input
+                className="input pl-9"
+                placeholder="Filter sites…"
+                value={siteQ}
+                onChange={(e) => setSiteQ(e.target.value)}
+              />
+            </div>
+            <div className="card max-h-[calc(100vh-300px)] overflow-auto">
+              {filteredSites.length === 0 && (
+                <div className="px-4 py-3 text-xs text-ink-500">
+                  {data?.site_count ? "No matches." : "No sites."}
+                </div>
+              )}
+              <ul className="divide-y divide-ink-100">
+                {filteredSites.map((s) => (
+                  <li
+                    key={s.id || s.name || ""}
+                    className="px-4 py-2 text-sm text-ink-800"
+                  >
+                    {s.name || "—"}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+
+          {/* Devices */}
+          <div>
+            <div className="mb-2 flex items-center justify-between">
+              <h2 className="text-sm font-semibold text-ink-900">
+                Devices ({data?.total_devices ?? 0})
+              </h2>
+            </div>
+            <div className="relative mb-2 max-w-md">
+              <Search
+                size={14}
+                className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-ink-400"
+              />
+              <input
+                className="input pl-9"
+                placeholder="Filter devices…"
+                value={q}
+                onChange={(e) => setQ(e.target.value)}
+              />
+            </div>
+            <div className="card overflow-hidden">
+              <div className="max-h-[calc(100vh-300px)] overflow-auto">
+                <table className="w-full border-collapse">
+                  <thead>
+                    <tr>
+                      <SortableTh label="Name" field="name" sort={sort} onToggle={toggleSort} />
+                      <SortableTh label="Type" field="device_type" sort={sort} onToggle={toggleSort} />
+                      <SortableTh label="Model" field="model" sort={sort} onToggle={toggleSort} />
+                      <SortableTh label="MAC" field="mac" sort={sort} onToggle={toggleSort} />
+                      <SortableTh label="IP" field="ip" sort={sort} onToggle={toggleSort} />
+                      <SortableTh label="Status" field="is_online" sort={sort} onToggle={toggleSort} />
+                      <SortableTh label="Uptime" field="uptime_sec" sort={sort} onToggle={toggleSort} />
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredDevices.length === 0 && (
+                      <tr>
+                        <td className="td text-ink-500" colSpan={7}>
+                          No devices match.
+                        </td>
+                      </tr>
                     )}
-                    <span className="text-sm font-semibold text-ink-900">
-                      {s.name || "(unnamed site)"}
-                    </span>
-                    <span className="text-xs text-ink-500">
-                      {s.device_count} device{s.device_count === 1 ? "" : "s"}
-                    </span>
-                  </div>
-                </button>
-                {isOpen && (
-                  <div className="border-t border-ink-100">
-                    <table className="w-full border-collapse">
-                      <thead>
-                        <tr>
-                          <th className="th">Name</th>
-                          <th className="th">Model</th>
-                          <th className="th">MAC</th>
-                          <th className="th">IP</th>
-                          <th className="th">Status</th>
-                          <th className="th">Uptime</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {s.devices.length === 0 && (
-                          <tr>
-                            <td className="td text-ink-500" colSpan={6}>
-                              No devices in this site.
-                            </td>
-                          </tr>
-                        )}
-                        {s.devices.map((d, i) => (
-                          <tr
-                            key={(d.id || "") + (d.mac || "") + i}
-                            className="border-t border-ink-100"
-                          >
-                            <td className="td font-medium">{d.name || "—"}</td>
-                            <td className="td">{d.model || "—"}</td>
-                            <td className="td font-mono text-xs">
-                              {d.mac || "—"}
-                            </td>
-                            <td className="td font-mono text-xs">
-                              {d.ip || "—"}
-                            </td>
-                            <td className="td">{statusBadge(d.status)}</td>
-                            <td className="td">{fmtUptime(d.uptime_sec)}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
+                    {filteredDevices.map((d, i) => (
+                      <tr
+                        key={(d.id || "") + (d.mac || "") + i}
+                        className="border-t border-ink-100 hover:bg-ink-50"
+                      >
+                        <td className="td font-medium">{d.name || "—"}</td>
+                        <td className="td">
+                          <span className="badge">{d.device_type}</span>
+                        </td>
+                        <td className="td">{d.model || "—"}</td>
+                        <td className="td font-mono text-xs">{d.mac || "—"}</td>
+                        <td className="td font-mono text-xs">{d.ip || "—"}</td>
+                        <td className="td">{statusBadge(d)}</td>
+                        <td className="td">{fmtUptime(d.uptime_sec)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
-            );
-          })}
+            </div>
+          </div>
         </div>
       </div>
     </div>

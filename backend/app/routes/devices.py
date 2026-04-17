@@ -44,7 +44,8 @@ def _site_id(site: dict) -> str | None:
 
 
 def _site_name(site: dict) -> str | None:
-    # Site Manager has shifted this around; try every reasonable spot.
+    # On Site Manager, the friendly site label is meta.desc. meta.name is an
+    # opaque slug like "nskjye0y", so skip it unless nothing else matches.
     meta = site.get("meta") if isinstance(site.get("meta"), dict) else {}
     internal = (
         site.get("internalReference")
@@ -56,19 +57,18 @@ def _site_name(site: dict) -> str | None:
         if isinstance(site.get("reportedState"), dict)
         else {}
     )
-    desc = meta.get("desc") or meta.get("description")
     name = (
-        meta.get("name")
+        meta.get("desc")
+        or meta.get("description")
         or reported.get("name")
         or internal.get("name")
         or site.get("siteName")
-        or site.get("name")
         or site.get("displayName")
-        or desc
+        or meta.get("name")
+        or site.get("name")
     )
     if name:
         return name
-    # Last resort: expose something readable so the UI doesn't show blanks.
     sid = _site_id(site)
     if sid:
         return f"site {sid[-8:]}" if len(sid) > 8 else f"site {sid}"
@@ -416,41 +416,26 @@ async def host_detail(
 
     entry = next((e for e in devices_payload if e.get("hostId") == host_id), None)
     raw_devices = entry.get("devices", []) if entry else []
-    flat = [
+    devices = [
         _flatten_device(d, host, host_id, host_name, links, site_by_id)
         for d in raw_devices
     ]
 
-    grouped: dict[str | None, list[dict]] = defaultdict(list)
-    for d in flat:
-        grouped[d["site_id"]].append(d)
-
-    site_entries: list[dict] = []
-    for s in host_sites:
-        sid = _site_id(s)
-        site_entries.append(
-            {
-                **_summarize_site(s),
-                "devices": grouped.get(sid, []),
-                "device_count": len(grouped.get(sid, [])),
-            }
-        )
-    # devices without a matching site
-    unassigned = grouped.get(None, [])
-    if unassigned:
-        site_entries.append(
-            {
-                "id": None,
-                "name": "(unassigned)",
-                "host_id": host_id,
-                "statistics": None,
-                "devices": unassigned,
-                "device_count": len(unassigned),
-            }
-        )
+    # The Site Manager /devices payload doesn't attribute devices to sites,
+    # so we surface sites and devices as independent lists on this console.
+    site_entries = sorted(
+        [_summarize_site(s) for s in host_sites],
+        key=lambda s: (s.get("name") or "").lower(),
+    )
 
     return {
         "host": {**_summarize_host(host), "host_ip": links["host_ip"]},
         "sites": site_entries,
-        "total_devices": len(flat),
+        "site_count": len(site_entries),
+        "devices": devices,
+        "total_devices": len(devices),
+        "note": (
+            "The Site Manager API does not return a site per device; "
+            "per-site device attribution requires the local Network controller API."
+        ),
     }
