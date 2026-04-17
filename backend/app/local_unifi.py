@@ -65,11 +65,28 @@ class LocalUniFiClient:
             raise IntegrationError(
                 f"HTTP {r.status_code}: {r.text[:300]}", status=r.status_code
             )
+        ctype = r.headers.get("content-type", "").lower()
+        body_preview = r.text[:160].replace("\n", " ")
+        if "text/html" in ctype or body_preview.lstrip().lower().startswith("<!doctype") \
+                or body_preview.lstrip().startswith("<html"):
+            hint = ""
+            if "unifi.ui.com" in url or "api.ui.com/proxy/consoles" in url:
+                hint = (
+                    " The unifi.ui.com cloud proxy only accepts browser session "
+                    "cookies, not the Control Plane API key. Use the console's LAN "
+                    "URL (e.g. https://<console-ip>) instead, or put Raptorr on a "
+                    "network that can reach it."
+                )
+            raise IntegrationError(
+                f"Got an HTML login page instead of JSON from {url}."
+                f" The API key was not accepted at this base URL.{hint}",
+                status=r.status_code,
+            )
         try:
             return r.json()
         except ValueError as exc:
             raise IntegrationError(
-                f"Non-JSON response from {url}: {r.text[:200]}"
+                f"Non-JSON response from {url}: {body_preview}"
             ) from exc
 
     async def _get_paginated(
@@ -127,25 +144,34 @@ def mask_key(key: str) -> str:
 
 
 def suggest_base_urls(host_id: str, host_ip: str | None = None) -> list[dict[str, Any]]:
-    """Ordered list of URL candidates to try for a given console."""
-    candidates: list[dict[str, Any]] = [
-        {
-            "label": "Cloud proxy (unifi.ui.com)",
-            "base_url": f"https://unifi.ui.com/proxy/consoles/{host_id}",
-            "verify_tls": True,
-        },
-        {
-            "label": "Cloud proxy (api.ui.com)",
-            "base_url": f"https://api.ui.com/proxy/consoles/{host_id}",
-            "verify_tls": True,
-        },
-    ]
+    """Ordered list of URL candidates to try for a given console.
+
+    LAN first because the Control Plane API key is only honored on the
+    console's local endpoint. The `unifi.ui.com`/`api.ui.com` proxy paths are
+    included for completeness but they require browser session cookies, not
+    the API key — they'll return an HTML login page.
+    """
+    candidates: list[dict[str, Any]] = []
     if host_ip:
         candidates.append(
             {
-                "label": f"LAN ({host_ip})",
+                "label": f"LAN ({host_ip}) — recommended",
                 "base_url": f"https://{host_ip}",
                 "verify_tls": False,
             }
         )
+    candidates.extend(
+        [
+            {
+                "label": "Cloud proxy (unifi.ui.com) — browser-only, won't accept API key",
+                "base_url": f"https://unifi.ui.com/proxy/consoles/{host_id}",
+                "verify_tls": True,
+            },
+            {
+                "label": "Cloud proxy (api.ui.com) — browser-only, won't accept API key",
+                "base_url": f"https://api.ui.com/proxy/consoles/{host_id}",
+                "verify_tls": True,
+            },
+        ]
+    )
     return candidates
