@@ -1,4 +1,4 @@
-import { LogOut, Radio, Server, Settings as SettingsIcon, Shield, Users } from "lucide-react";
+import { LogOut, Radio, Server, Shield, Users } from "lucide-react";
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import { useAuth } from "../auth";
 
@@ -58,10 +58,10 @@ export default function Layout() {
             show={can("devices:read")}
           />
           <NavItem
-            to="/hosts"
+            to="/consoles"
             icon={<Server size={16} />}
             label="Consoles"
-            show={can("devices:read")}
+            show={can("devices:read") || can("consoles:manage")}
           />
           <NavItem
             to="/users"
@@ -74,12 +74,6 @@ export default function Layout() {
             icon={<Shield size={16} />}
             label="Roles"
             show={can("roles:read")}
-          />
-          <NavItem
-            to="/settings"
-            icon={<SettingsIcon size={16} />}
-            label="Settings"
-            show={can("settings:read")}
           />
         </nav>
         <div className="border-t border-ink-200 p-3">

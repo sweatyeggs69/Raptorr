@@ -1,12 +1,11 @@
 import { Navigate, Route, Routes } from "react-router-dom";
 import { AuthProvider, useAuth } from "./auth";
 import Layout from "./components/Layout";
+import ConsoleDetailPage from "./pages/ConsoleDetail";
+import ConsolesPage from "./pages/Consoles";
 import DevicesPage from "./pages/Devices";
-import HostDetailPage from "./pages/HostDetail";
-import HostsPage from "./pages/Hosts";
 import LoginPage from "./pages/Login";
 import RolesPage from "./pages/Roles";
-import SettingsPage from "./pages/Settings";
 import SetupPage from "./pages/Setup";
 import UsersPage from "./pages/Users";
 
@@ -69,11 +68,10 @@ export default function App() {
         >
           <Route index element={<Navigate to="/devices" replace />} />
           <Route path="devices" element={<DevicesPage />} />
-          <Route path="hosts" element={<HostsPage />} />
-          <Route path="hosts/:hostId" element={<HostDetailPage />} />
+          <Route path="consoles" element={<ConsolesPage />} />
+          <Route path="consoles/:consoleId" element={<ConsoleDetailPage />} />
           <Route path="users" element={<UsersPage />} />
           <Route path="roles" element={<RolesPage />} />
-          <Route path="settings" element={<SettingsPage />} />
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

@@ -6,7 +6,6 @@ class SetupRequest(BaseModel):
     username: str = Field(min_length=3, max_length=64)
     email: Optional[str] = None
     password: str = Field(min_length=8, max_length=128)
-    api_key: Optional[str] = None
 
 
 class LoginRequest(BaseModel):
@@ -39,17 +38,21 @@ class RoleUpdate(BaseModel):
     permissions: Optional[list[str]] = None
 
 
-class ApiKeyRequest(BaseModel):
-    api_key: str
-
-
-class IntegrationUpsert(BaseModel):
+class ConsoleCreate(BaseModel):
+    name: str = Field(min_length=1, max_length=128)
     base_url: str = Field(min_length=1, max_length=512)
-    api_key: Optional[str] = Field(default=None, max_length=512)
+    api_key: str = Field(min_length=1, max_length=512)
     verify_tls: bool = False
 
 
-class IntegrationTest(BaseModel):
+class ConsoleUpdate(BaseModel):
+    name: Optional[str] = Field(default=None, min_length=1, max_length=128)
+    base_url: Optional[str] = Field(default=None, min_length=1, max_length=512)
+    api_key: Optional[str] = Field(default=None, min_length=1, max_length=512)
+    verify_tls: Optional[bool] = None
+
+
+class ConsoleTest(BaseModel):
     base_url: Optional[str] = Field(default=None, max_length=512)
     api_key: Optional[str] = Field(default=None, max_length=512)
     verify_tls: Optional[bool] = None
