@@ -23,6 +23,7 @@ class Settings(BaseSettings):
     secret_key: str = ""
     session_cookie: str = "raptorr_session"
     session_ttl_hours: int = 24 * 7
+    cookie_secure: bool = False
     unifi_base_url: str = "https://api.ui.com"
     unifi_api_prefix: str = "/ea"
     unifi_device_window_days: int = 30

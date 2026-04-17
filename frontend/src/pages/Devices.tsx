@@ -1,13 +1,14 @@
 import {
+  AlertTriangle,
   ArrowDown,
   ArrowUp,
   ArrowUpDown,
-  ExternalLink,
   RefreshCw,
   Search,
   Server,
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 import { api, ApiError } from "../api";
 import Modal from "../components/Modal";
 import PageHeader from "../components/PageHeader";
@@ -22,25 +23,21 @@ type Device = {
   status: string | null;
   is_online: boolean | null;
   device_type: string;
-  adopted: boolean | null;
   uptime_sec: number | null;
-  site: string | null;
   site_id: string | null;
   site_name: string | null;
-  host_id: string | null;
-  host_name: string | null;
-  host_ip: string | null;
-  console_cloud_url: string | null;
-  console_local_url: string | null;
+  console_id: number;
+  console_name: string;
   raw: Record<string, unknown>;
 };
 
 type SearchResponse = {
-  total_hosts: number;
-  total_sites: number;
-  total_devices: number;
   devices: Device[];
-  cache: { age_seconds: number | null; ttl_seconds: number };
+  total_devices: number;
+  total_sites: number;
+  total_consoles: number;
+  total_consoles_ok: number;
+  errors: { console_id: number; console_name: string; error: string }[];
 };
 
 type SortKey =
@@ -52,8 +49,7 @@ type SortKey =
   | "mac"
   | "uptime_sec"
   | "site_name"
-  | "host_name";
-
+  | "console_name";
 type SortDir = "asc" | "desc";
 
 function statusBadge(d: Device) {
@@ -76,26 +72,14 @@ function fmtUptime(sec: number | null) {
   return `${m}m`;
 }
 
-function fmtCacheAge(sec: number | null): string {
-  if (sec === null || Number.isNaN(sec)) return "just now";
-  const s = Math.round(sec);
-  if (s < 5) return "just now";
-  if (s < 60) return `${s}s ago`;
-  const m = Math.floor(s / 60);
-  return `${m}m ago`;
-}
-
 function compare(a: Device, b: Device, key: SortKey, dir: SortDir): number {
   const sign = dir === "asc" ? 1 : -1;
   if (key === "is_online") {
-    // online (true) > unknown (null) > offline (false)
     const rank = (v: boolean | null) => (v === true ? 0 : v === null ? 1 : 2);
     return (rank(a.is_online) - rank(b.is_online)) * sign;
   }
   if (key === "uptime_sec") {
-    const av = a.uptime_sec ?? -1;
-    const bv = b.uptime_sec ?? -1;
-    return (av - bv) * sign;
+    return ((a.uptime_sec ?? -1) - (b.uptime_sec ?? -1)) * sign;
   }
   const av = (a[key] as string | null) ?? "";
   const bv = (b[key] as string | null) ?? "";
@@ -107,13 +91,11 @@ function SortableTh({
   field,
   sort,
   onToggle,
-  align = "left",
 }: {
   label: string;
   field: SortKey;
   sort: { key: SortKey; dir: SortDir };
   onToggle: (k: SortKey) => void;
-  align?: "left" | "right";
 }) {
   const active = sort.key === field;
   const Icon = active ? (sort.dir === "asc" ? ArrowUp : ArrowDown) : ArrowUpDown;
@@ -121,7 +103,7 @@ function SortableTh({
     <th className="th">
       <button
         onClick={() => onToggle(field)}
-        className={`inline-flex items-center gap-1 ${active ? "text-ink-900" : "text-ink-500"} hover:text-ink-900 ${align === "right" ? "ml-auto" : ""}`}
+        className={`inline-flex items-center gap-1 ${active ? "text-ink-900" : "text-ink-500"} hover:text-ink-900`}
       >
         <span>{label}</span>
         <Icon size={12} />
@@ -140,8 +122,6 @@ export default function DevicesPage() {
     key: "name",
     dir: "asc",
   });
-  const [now, setNow] = useState(Date.now());
-  const [fetchedAt, setFetchedAt] = useState<number | null>(null);
 
   const fetchDevices = useCallback(async (needle: string) => {
     setLoading(true);
@@ -151,7 +131,6 @@ export default function DevicesPage() {
         `/api/devices/search${needle ? `?q=${encodeURIComponent(needle)}` : ""}`
       );
       setData(res);
-      setFetchedAt(Date.now());
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Failed to load devices");
       setData(null);
@@ -168,12 +147,6 @@ export default function DevicesPage() {
     const handle = setTimeout(() => fetchDevices(q.trim()), 250);
     return () => clearTimeout(handle);
   }, [q, fetchDevices]);
-
-  // tick every 5s so the "updated Ns ago" label stays fresh
-  useEffect(() => {
-    const id = setInterval(() => setNow(Date.now()), 5000);
-    return () => clearInterval(id);
-  }, []);
 
   const refresh = async () => {
     try {
@@ -198,127 +171,147 @@ export default function DevicesPage() {
 
   const countLabel = useMemo(() => {
     if (!data) return "";
-    return `${data.total_devices} device${data.total_devices === 1 ? "" : "s"} · ${data.total_sites} site${data.total_sites === 1 ? "" : "s"} · ${data.total_hosts} console${data.total_hosts === 1 ? "" : "s"}`;
+    return `${data.total_devices} device${data.total_devices === 1 ? "" : "s"} · ${data.total_sites} site${data.total_sites === 1 ? "" : "s"} · ${data.total_consoles_ok}/${data.total_consoles} console${data.total_consoles === 1 ? "" : "s"}`;
   }, [data]);
-
-  const cacheLabel = useMemo(() => {
-    if (!data?.cache || fetchedAt === null) return "";
-    const baseAge = data.cache.age_seconds ?? 0;
-    const extra = Math.max(0, (now - fetchedAt) / 1000);
-    return `updated ${fmtCacheAge(baseAge + extra)}`;
-  }, [data, fetchedAt, now]);
 
   return (
     <div>
       <PageHeader
         title="Devices"
-        subtitle="Search every device across all sites behind your API key."
+        subtitle="Live device inventory aggregated across every configured console."
         actions={
-          <div className="flex items-center gap-3">
-            {data?.cache && (
-              <span className="text-xs text-ink-500">{cacheLabel}</span>
-            )}
-            <button className="btn" onClick={refresh} disabled={loading}>
-              <RefreshCw size={14} className={loading ? "animate-spin" : ""} />
-              Refresh
-            </button>
-          </div>
+          <button className="btn" onClick={refresh} disabled={loading}>
+            <RefreshCw size={14} className={loading ? "animate-spin" : ""} />
+            Refresh
+          </button>
         }
       />
       <div className="px-8 py-6">
-        <div className="relative mb-4 max-w-xl">
-          <Search
-            size={14}
-            className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-ink-400"
-          />
-          <input
-            className="input pl-9"
-            placeholder="Search by name, MAC, IP, model, site, type…"
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-            autoFocus
-          />
-        </div>
-
-        {error && (
-          <div className="mb-4 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">
-            {error}
+        {data && data.total_consoles === 0 && (
+          <div className="card max-w-xl p-6">
+            <div className="flex items-center gap-2 text-sm font-semibold text-ink-900">
+              <Server size={16} /> No consoles configured yet
+            </div>
+            <p className="mt-2 text-sm text-ink-500">
+              Raptorr reads device data directly from your UOS consoles. Add one
+              to get started.
+            </p>
+            <Link to="/consoles" className="btn btn-primary mt-3">
+              Add a console
+            </Link>
           </div>
         )}
 
-        <div className="mb-2 text-xs text-ink-500">{countLabel}</div>
+        {data && data.total_consoles > 0 && (
+          <>
+            <div className="relative mb-4 max-w-xl">
+              <Search
+                size={14}
+                className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-ink-400"
+              />
+              <input
+                className="input pl-9"
+                placeholder="Search by name, MAC, IP, model, site, console…"
+                value={q}
+                onChange={(e) => setQ(e.target.value)}
+                autoFocus
+              />
+            </div>
 
-        <div className="card overflow-hidden">
-          <div className="max-h-[calc(100vh-260px)] overflow-auto">
-            <table className="w-full border-collapse">
-              <thead>
-                <tr>
-                  <SortableTh label="Name" field="name" sort={sort} onToggle={toggleSort} />
-                  <SortableTh label="Type" field="device_type" sort={sort} onToggle={toggleSort} />
-                  <SortableTh label="Model" field="model" sort={sort} onToggle={toggleSort} />
-                  <SortableTh label="MAC" field="mac" sort={sort} onToggle={toggleSort} />
-                  <SortableTh label="IP" field="ip" sort={sort} onToggle={toggleSort} />
-                  <SortableTh label="Status" field="is_online" sort={sort} onToggle={toggleSort} />
-                  <SortableTh label="Uptime" field="uptime_sec" sort={sort} onToggle={toggleSort} />
-                  <SortableTh label="Site" field="site_name" sort={sort} onToggle={toggleSort} />
-                  <SortableTh label="Console" field="host_name" sort={sort} onToggle={toggleSort} />
-                  <th className="th text-right">Open</th>
-                </tr>
-              </thead>
-              <tbody>
-                {loading && !data && (
-                  <tr>
-                    <td className="td text-ink-500" colSpan={10}>
-                      Loading…
-                    </td>
-                  </tr>
-                )}
-                {data && sorted.length === 0 && (
-                  <tr>
-                    <td className="td text-ink-500" colSpan={10}>
-                      No devices match.
-                    </td>
-                  </tr>
-                )}
-                {sorted.map((d, i) => (
-                  <tr
-                    key={(d.id || "") + (d.mac || "") + i}
-                    onClick={() => setSelected(d)}
-                    className="cursor-pointer border-t border-ink-100 hover:bg-ink-50"
-                  >
-                    <td className="td font-medium">{d.name || "—"}</td>
-                    <td className="td">
-                      <span className="badge">{d.device_type}</span>
-                    </td>
-                    <td className="td">{d.model || "—"}</td>
-                    <td className="td font-mono text-xs">{d.mac || "—"}</td>
-                    <td className="td font-mono text-xs">{d.ip || "—"}</td>
-                    <td className="td">{statusBadge(d)}</td>
-                    <td className="td">{fmtUptime(d.uptime_sec)}</td>
-                    <td className="td">{d.site_name || d.site || "—"}</td>
-                    <td className="td text-ink-500">{d.host_name || "—"}</td>
-                    <td className="td text-right">
-                      {d.console_cloud_url ? (
-                        <a
-                          href={d.console_cloud_url}
-                          target="_blank"
-                          rel="noreferrer noopener"
-                          onClick={(e) => e.stopPropagation()}
-                          className="inline-flex items-center gap-1 text-ink-500 hover:text-ink-900"
-                          title="Open console at unifi.ui.com"
-                        >
-                          <ExternalLink size={14} />
-                        </a>
-                      ) : (
-                        <span className="text-ink-300">—</span>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
+            {error && (
+              <div className="mb-4 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">
+                {error}
+              </div>
+            )}
+
+            {data.errors.length > 0 && (
+              <div className="mb-4 rounded-md border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900">
+                <div className="flex items-center gap-2 font-semibold">
+                  <AlertTriangle size={14} /> {data.errors.length} console
+                  {data.errors.length === 1 ? "" : "s"} unreachable
+                </div>
+                <ul className="mt-2 space-y-0.5 pl-5">
+                  {data.errors.map((e) => (
+                    <li key={e.console_id}>
+                      <Link
+                        to={`/consoles/${e.console_id}`}
+                        className="font-medium underline"
+                      >
+                        {e.console_name}
+                      </Link>
+                      : {e.error}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            <div className="mb-2 text-xs text-ink-500">{countLabel}</div>
+
+            <div className="card overflow-hidden">
+              <div className="max-h-[calc(100vh-260px)] overflow-auto">
+                <table className="w-full border-collapse">
+                  <thead>
+                    <tr>
+                      <SortableTh label="Name" field="name" sort={sort} onToggle={toggleSort} />
+                      <SortableTh label="Type" field="device_type" sort={sort} onToggle={toggleSort} />
+                      <SortableTh label="Model" field="model" sort={sort} onToggle={toggleSort} />
+                      <SortableTh label="MAC" field="mac" sort={sort} onToggle={toggleSort} />
+                      <SortableTh label="IP" field="ip" sort={sort} onToggle={toggleSort} />
+                      <SortableTh label="Status" field="is_online" sort={sort} onToggle={toggleSort} />
+                      <SortableTh label="Uptime" field="uptime_sec" sort={sort} onToggle={toggleSort} />
+                      <SortableTh label="Site" field="site_name" sort={sort} onToggle={toggleSort} />
+                      <SortableTh label="Console" field="console_name" sort={sort} onToggle={toggleSort} />
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {loading && !data?.devices.length && (
+                      <tr>
+                        <td className="td text-ink-500" colSpan={9}>
+                          Loading…
+                        </td>
+                      </tr>
+                    )}
+                    {sorted.length === 0 && !loading && (
+                      <tr>
+                        <td className="td text-ink-500" colSpan={9}>
+                          No devices match.
+                        </td>
+                      </tr>
+                    )}
+                    {sorted.map((d, i) => (
+                      <tr
+                        key={(d.id || "") + (d.mac || "") + i}
+                        onClick={() => setSelected(d)}
+                        className="cursor-pointer border-t border-ink-100 hover:bg-ink-50"
+                      >
+                        <td className="td font-medium">{d.name || "—"}</td>
+                        <td className="td">
+                          <span className="badge">{d.device_type}</span>
+                        </td>
+                        <td className="td">{d.model || "—"}</td>
+                        <td className="td font-mono text-xs">{d.mac || "—"}</td>
+                        <td className="td font-mono text-xs">{d.ip || "—"}</td>
+                        <td className="td">{statusBadge(d)}</td>
+                        <td className="td">{fmtUptime(d.uptime_sec)}</td>
+                        <td className="td">{d.site_name || "—"}</td>
+                        <td className="td text-ink-500">
+                          <Link
+                            to={`/consoles/${d.console_id}`}
+                            onClick={(e) => e.stopPropagation()}
+                            className="hover:underline"
+                          >
+                            {d.console_name}
+                          </Link>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </>
+        )}
       </div>
 
       <Modal
@@ -326,33 +319,9 @@ export default function DevicesPage() {
         onClose={() => setSelected(null)}
         title={selected?.name || "Device"}
         footer={
-          <>
-            {selected?.console_local_url && (
-              <a
-                className="btn mr-auto"
-                href={selected.console_local_url}
-                target="_blank"
-                rel="noreferrer noopener"
-              >
-                <Server size={14} />
-                Open local ({selected.host_ip})
-              </a>
-            )}
-            {selected?.console_cloud_url && (
-              <a
-                className="btn btn-primary"
-                href={selected.console_cloud_url}
-                target="_blank"
-                rel="noreferrer noopener"
-              >
-                <ExternalLink size={14} />
-                Open in UniFi
-              </a>
-            )}
-            <button className="btn" onClick={() => setSelected(null)}>
-              Close
-            </button>
-          </>
+          <button className="btn" onClick={() => setSelected(null)}>
+            Close
+          </button>
         }
       >
         {selected && (
@@ -388,16 +357,23 @@ export default function DevicesPage() {
               </div>
               <div>
                 <div className="label">Site</div>
-                <div>{selected.site_name || selected.site || "—"}</div>
+                <div>{selected.site_name || "—"}</div>
               </div>
               <div>
                 <div className="label">Console</div>
-                <div>{selected.host_name || "—"}</div>
+                <div>
+                  <Link
+                    to={`/consoles/${selected.console_id}`}
+                    className="hover:underline"
+                  >
+                    {selected.console_name}
+                  </Link>
+                </div>
               </div>
             </div>
             <details>
               <summary className="cursor-pointer text-xs font-medium text-ink-500">
-                Raw API response
+                Raw Network API response
               </summary>
               <pre className="mt-2 max-h-64 overflow-auto rounded-md bg-ink-900 p-3 font-mono text-xs text-ink-100">
                 {JSON.stringify(selected.raw, null, 2)}

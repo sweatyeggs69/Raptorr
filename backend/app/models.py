@@ -35,15 +35,16 @@ class UserSession(SQLModel, table=True):
     expires_at: datetime
 
 
-class AppSetting(SQLModel, table=True):
-    key: str = Field(primary_key=True)
-    value: str = ""
+class ConsoleConnection(SQLModel, table=True):
+    """A configured UOS console Raptorr can reach on the LAN or via VPN.
 
+    Each connection is a self-contained record — Raptorr doesn't depend on the
+    cloud Site Manager API to discover consoles. The user creates one entry
+    per console and Raptorr talks to its local Network Integration API.
+    """
 
-class ConsoleIntegration(SQLModel, table=True):
-    """Local Network Integration API credentials for one UOS console."""
-
-    host_id: str = Field(primary_key=True)
+    id: Optional[int] = Field(default=None, primary_key=True)
+    name: str = Field(index=True)
     base_url: str
     api_key: str
     verify_tls: bool = False
@@ -56,12 +57,11 @@ class ConsoleIntegration(SQLModel, table=True):
 
 ALL_PERMISSIONS = [
     "devices:read",
+    "consoles:manage",
     "users:read",
     "users:manage",
     "roles:read",
     "roles:manage",
-    "settings:read",
-    "settings:manage",
 ]
 
 BUILTIN_ROLES = {
@@ -70,11 +70,11 @@ BUILTIN_ROLES = {
         "permissions": ALL_PERMISSIONS,
     },
     "operator": {
-        "description": "Can search devices and view users and roles.",
-        "permissions": ["devices:read", "users:read", "roles:read", "settings:read"],
+        "description": "Search devices, view consoles, view users and roles.",
+        "permissions": ["devices:read", "users:read", "roles:read"],
     },
     "viewer": {
-        "description": "Can search devices only.",
+        "description": "Search devices only.",
         "permissions": ["devices:read"],
     },
 }

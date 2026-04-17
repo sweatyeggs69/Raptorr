@@ -5,7 +5,6 @@ from ..auth import hash_password
 from ..db import get_session
 from ..models import BUILTIN_ROLES, Role, RolePermission, User
 from ..schemas import SetupRequest
-from ..unifi import set_api_key
 
 router = APIRouter()
 
@@ -57,8 +56,5 @@ def complete(payload: SetupRequest, db: Session = Depends(get_session)):
     )
     db.add(user)
     db.commit()
-
-    if payload.api_key:
-        set_api_key(db, payload.api_key.strip())
 
     return {"ok": True}

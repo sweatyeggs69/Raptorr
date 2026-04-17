@@ -8,7 +8,6 @@ export default function SetupPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
-  const [apiKey, setApiKey] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -29,7 +28,6 @@ export default function SetupPage() {
         username: username.trim(),
         email: email.trim() || null,
         password,
-        api_key: apiKey.trim() || null,
       });
       await login(username.trim(), password);
       await refresh();
@@ -58,7 +56,8 @@ export default function SetupPage() {
             Welcome — let's set things up
           </h1>
           <p className="mt-1 text-sm text-ink-500">
-            Create the first admin account. You can add more users afterwards.
+            Create the first admin account. Once you're in, add your UOS
+            console(s) under Settings → Consoles.
           </p>
         </div>
 
@@ -106,20 +105,6 @@ export default function SetupPage() {
                 minLength={8}
               />
             </div>
-          </div>
-          <div>
-            <label className="label">
-              UniFi Site Manager API key (optional)
-            </label>
-            <input
-              className="input font-mono text-xs"
-              value={apiKey}
-              onChange={(e) => setApiKey(e.target.value)}
-              placeholder="Paste from unifi.ui.com → API"
-            />
-            <p className="mt-1 text-xs text-ink-500">
-              You can add or change this later in Settings.
-            </p>
           </div>
         </div>
 

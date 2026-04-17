@@ -1,19 +1,38 @@
 # Raptorr
 
-Unified management for the UniFi Site Manager API — a small Docker app to
-search every device across every site behind your API key, and manage who on
-your team can use it.
+A small Docker app that gives you a unified, multi-console dashboard for
+UniFi OS consoles reachable on your LAN (or via VPN / Tailscale). Raptorr
+talks to each console's **local Network Integration API** directly — no
+cloud Site Manager API dependency — so the device and client data is
+real-time and per-site accurate.
 
 ## Features
 
-- **Device search** across every site behind your Site Manager API key
-  (name, MAC, IP, model, firmware, site, host).
-- **Role-based access** for the app itself. Built-in `admin`, `operator`,
-  `viewer` roles plus custom roles with fine-grained permissions.
-- **First-run setup wizard** creates the initial admin and (optionally)
-  stores your API key.
-- **Single container.** FastAPI backend, React + Tailwind frontend, SQLite
-  persisted on a volume.
+- **Multi-console device search.** Fan out across every configured UOS
+  console and search UniFi devices by name, MAC, IP, model, site, or
+  console.
+- **Per-site drill-down.** Browse each console's sites and expand to see
+  devices and clients for that site, straight from the Network Integration
+  API.
+- **Role-based app access.** Built-in `admin`, `operator`, `viewer` roles
+  plus custom roles with fine-grained permissions.
+- **First-run setup wizard** creates the initial admin account.
+- **Single container.** FastAPI backend, React + Tailwind frontend,
+  SQLite persisted on a volume.
+- **Secrets encrypted at rest** (Fernet, key derived from `SECRET_KEY`
+  via HKDF). Optional `Secure` cookie when running behind HTTPS.
+
+## Requirements
+
+Raptorr needs **network reachability** from its Docker host to each UOS
+console on TCP 443:
+
+- **Same LAN:** run Raptorr on a host on the same network as the console.
+- **Remote:** add a Tailscale or VPN sidecar to the compose stack so the
+  container can route to the console's IP.
+
+The cloud path `unifi.ui.com/proxy/consoles/…` is **not supported** —
+that proxy needs browser session cookies, not API keys.
 
 ## Quick start
 
@@ -21,7 +40,18 @@ your team can use it.
 docker compose up -d --build
 ```
 
-Open <http://localhost:8080> and walk through the setup wizard.
+Open <http://localhost:8080>, walk through the setup wizard, then go to
+**Consoles → Add console**. For each console you'll need:
+
+1. A friendly **name** (e.g. "HQ main").
+2. The console's **base URL** — usually `https://<console-ip>`.
+3. A **Control Plane API key** generated on the UOS console:
+   *Control Plane → Admins & Users → Create API Key*. (This is a local key
+   on the console itself, separate from the Site Manager API key at
+   unifi.ui.com.)
+
+Use **Test connection** to verify Raptorr can reach the console and that
+the key is accepted. Then **Save**.
 
 ### Without compose
 
@@ -35,30 +65,16 @@ docker run -d --name raptorr \
 
 ## Configuration
 
-All environment variables are optional. Useful ones:
+| Variable            | Default                              | Notes                                      |
+| ------------------- | ------------------------------------ | ------------------------------------------ |
+| `SECRET_KEY`        | auto-generated in `/data/.secret_key` | Preserve across rebuilds                  |
+| `SESSION_TTL_HOURS` | `168` (7 days)                        |                                            |
+| `CACHE_TTL_SECONDS` | `30`                                  | Per-console inventory cache                |
+| `COOKIE_SECURE`     | `false`                               | Set to `true` when behind TLS reverse proxy |
 
-| Variable            | Default                 | Notes                                    |
-| ------------------- | ----------------------- | ---------------------------------------- |
-| `SECRET_KEY`        | auto-generated in `/data/.secret_key` | Set to keep sessions across rebuilds |
-| `UNIFI_BASE_URL`    | `https://api.ui.com`    |                                          |
-| `UNIFI_API_PREFIX`  | `/ea`                   | Change to `/v1` if UI rotates the prefix |
-| `SESSION_TTL_HOURS` | `168` (7 days)          |                                          |
-| `CACHE_TTL_SECONDS` | `30`                    | Caches hosts + devices to save rate limit |
-
-Data is persisted to `/data` inside the container. Mount it to a host path.
-
-## Getting a Site Manager API key
-
-1. Sign in to <https://unifi.ui.com>.
-2. Open the **API** section and create a key.
-3. Paste it into the setup wizard, or later under **Settings → API key**.
-
-The Site Manager API is currently read-only and rate-limited to 100 req/min.
-Raptorr caches `hosts`/`devices` responses to stay well under that.
+Data is persisted to `/data` inside the container.
 
 ## Development
-
-Run the backend and frontend separately while iterating:
 
 ```bash
 # backend
@@ -77,23 +93,40 @@ Vite dev server runs on <http://localhost:5173> and proxies `/api` to 8080.
 
 ## Permissions
 
-| Permission         | Grants                                    |
-| ------------------ | ----------------------------------------- |
-| `devices:read`     | Search devices and view sites             |
-| `users:read`       | View users                                |
-| `users:manage`     | Create / edit / delete users              |
-| `roles:read`       | View roles                                |
-| `roles:manage`     | Create / edit / delete non-builtin roles  |
-| `settings:read`    | View API key status                       |
-| `settings:manage`  | Change the UniFi API key                  |
+| Permission         | Grants                                        |
+| ------------------ | --------------------------------------------- |
+| `devices:read`     | Search devices, view consoles, view sites     |
+| `consoles:manage`  | Add / edit / delete console connections       |
+| `users:read`       | View users                                    |
+| `users:manage`     | Create / edit / delete users                  |
+| `roles:read`       | View roles                                    |
+| `roles:manage`     | Create / edit / delete non-builtin roles      |
 
 The `admin` built-in role always has every permission and can't be modified
 or deleted.
 
-## Notes
+## Security
 
-- The API key is stored unencrypted in the SQLite database. Protect the
-  `/data` volume accordingly.
-- HTTPS isn't terminated by the container — put it behind a reverse proxy
-  (Caddy, nginx, Traefik) for real deployments. Once you do, set the
-  cookie to `secure` by serving over HTTPS only.
+**Secrets at rest.** Every Control Plane API key stored in the SQLite
+database is Fernet-encrypted (AES-128-CBC + HMAC-SHA256). The encryption
+key is derived from `SECRET_KEY` via HKDF, so it never lives in the
+database and rotating `SECRET_KEY` rotates the encryption. Legacy plaintext
+values (from earlier versions) are still readable and upgrade on next
+write.
+
+**`SECRET_KEY` must be preserved across restarts.** It is auto-generated
+once and persisted to `/data/.secret_key`. Recreate `/data` and your stored
+secrets become unrecoverable.
+
+**Passwords** are bcrypt hashed.
+
+**In transit.**
+
+- Raptorr ↔ UOS console: HTTPS. Per-console `Verify TLS` toggle; uncheck
+  for direct LAN with self-signed certs.
+- Browser ↔ Raptorr: plain HTTP inside the container. Terminate TLS at a
+  reverse proxy (Caddy, Traefik, nginx) and set `COOKIE_SECURE=true` so
+  session cookies only fly over HTTPS.
+
+**Backups.** Back up `/data` (DB) and `/data/.secret_key` together — one
+without the other is useless.
