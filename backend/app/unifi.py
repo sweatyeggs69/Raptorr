@@ -100,9 +100,12 @@ class UniFiClient:
 
 
 class _Cache:
+    """Async TTL cache with single-flight so N concurrent misses hit the API once."""
+
     def __init__(self, ttl: int):
         self.ttl = ttl
         self._store: dict[str, tuple[float, Any]] = {}
+        self._inflight: dict[str, asyncio.Future] = {}
         self._lock = asyncio.Lock()
 
     async def get_or_set(self, key: str, factory):
@@ -111,10 +114,30 @@ class _Cache:
             entry = self._store.get(key)
             if entry and now - entry[0] < self.ttl:
                 return entry[1]
-        value = await factory()
-        async with self._lock:
-            self._store[key] = (time.time(), value)
-        return value
+            fut = self._inflight.get(key)
+            owner = fut is None
+            if owner:
+                fut = asyncio.get_event_loop().create_future()
+                self._inflight[key] = fut
+        if owner:
+            try:
+                value = await factory()
+                async with self._lock:
+                    self._store[key] = (time.time(), value)
+                    self._inflight.pop(key, None)
+                fut.set_result(value)
+            except BaseException as exc:
+                async with self._lock:
+                    self._inflight.pop(key, None)
+                fut.set_exception(exc)
+                raise
+        return await fut
+
+    def age(self, key: str) -> float | None:
+        entry = self._store.get(key)
+        if not entry:
+            return None
+        return time.time() - entry[0]
 
     def invalidate(self, prefix: str = "") -> None:
         if not prefix:

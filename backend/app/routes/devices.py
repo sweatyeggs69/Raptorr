@@ -3,6 +3,7 @@ from collections import defaultdict
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlmodel import Session
 
+from ..config import settings
 from ..db import get_session
 from ..deps import require
 from ..models import User
@@ -96,6 +97,42 @@ def _device_site_ref(device: dict) -> tuple[str | None, str | None]:
     return site_id, site_name
 
 
+def _device_type(device: dict) -> str:
+    if device.get("isConsole") is True:
+        return "Console"
+    product_line = device.get("productLine") or device.get("product_line")
+    if isinstance(product_line, str) and product_line.strip():
+        pl = product_line.strip().lower()
+        mapping = {
+            "network": "Network",
+            "protect": "Protect",
+            "access": "Access",
+            "talk": "Talk",
+            "connect": "Connect",
+            "drive": "Drive",
+            "amplifi": "AmpliFi",
+        }
+        return mapping.get(pl, pl[:1].upper() + pl[1:])
+    return "Network"
+
+
+def _is_online(status: str | None, device: dict) -> bool | None:
+    state = device.get("state")
+    if isinstance(state, (int, float)):
+        if state == 0:
+            return False
+        if state in (1, 2, 3, 4, 5):
+            return True
+    if not status:
+        return None
+    s = status.lower()
+    if any(t in s for t in ("online", "connected", "active", "running")):
+        return True
+    if any(t in s for t in ("offline", "disconnected", "unreachable")):
+        return False
+    return None
+
+
 def _flatten_device(
     device: dict,
     host: dict,
@@ -109,6 +146,8 @@ def _flatten_device(
         ref = site_by_id.get(site_id)
         if ref:
             site_name = _site_name(ref)
+    status = device.get("status") or device.get("state")
+    status_text = status if isinstance(status, str) else None
     return {
         "id": device.get("id"),
         "name": device.get("name"),
@@ -116,7 +155,9 @@ def _flatten_device(
         "mac": device.get("mac"),
         "ip": device.get("ip"),
         "firmware": device.get("firmwareVersion") or device.get("firmware"),
-        "status": device.get("status") or device.get("state"),
+        "status": status_text if status_text is not None else (str(status) if status is not None else None),
+        "is_online": _is_online(status_text, device),
+        "device_type": _device_type(device),
         "adopted": device.get("adopted"),
         "uptime_sec": device.get("uptime") or device.get("uptimeSec"),
         "site_id": site_id,
@@ -170,9 +211,17 @@ def _matches(device: dict, needle: str) -> bool:
             "host_name",
             "status",
             "firmware",
+            "device_type",
         )
     ).lower()
     return needle in haystack
+
+
+def _cache_info() -> dict:
+    return {
+        "age_seconds": cache.age("devices"),
+        "ttl_seconds": settings.cache_ttl_seconds,
+    }
 
 
 async def _load_all(db: Session):
@@ -213,6 +262,7 @@ async def search_devices(
         "total_sites": len(sites),
         "total_devices": len(devices),
         "devices": devices[:limit],
+        "cache": _cache_info(),
     }
 
 
