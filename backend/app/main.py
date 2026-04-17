@@ -6,7 +6,15 @@ from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
 from .db import init_db
-from .routes import auth, devices, roles, settings as settings_route, setup, users
+from .routes import (
+    auth,
+    consoles,
+    devices,
+    roles,
+    settings as settings_route,
+    setup,
+    users,
+)
 
 # Ensure tables exist as soon as the module is imported so both
 # `uvicorn app.main:app` and `TestClient(app)` pick them up.
@@ -25,6 +33,7 @@ app.include_router(auth.router, prefix="/api/auth", tags=["auth"])
 app.include_router(users.router, prefix="/api/users", tags=["users"])
 app.include_router(roles.router, prefix="/api/roles", tags=["roles"])
 app.include_router(devices.router, prefix="/api/devices", tags=["devices"])
+app.include_router(consoles.router, prefix="/api/consoles", tags=["consoles"])
 app.include_router(settings_route.router, prefix="/api/settings", tags=["settings"])
 
 

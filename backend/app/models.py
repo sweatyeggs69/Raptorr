@@ -40,6 +40,20 @@ class AppSetting(SQLModel, table=True):
     value: str = ""
 
 
+class ConsoleIntegration(SQLModel, table=True):
+    """Local Network Integration API credentials for one UOS console."""
+
+    host_id: str = Field(primary_key=True)
+    base_url: str
+    api_key: str
+    verify_tls: bool = False
+    last_test_at: Optional[datetime] = None
+    last_test_ok: Optional[bool] = None
+    last_test_message: Optional[str] = None
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
+
+
 ALL_PERMISSIONS = [
     "devices:read",
     "users:read",

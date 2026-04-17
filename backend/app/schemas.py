@@ -41,3 +41,15 @@ class RoleUpdate(BaseModel):
 
 class ApiKeyRequest(BaseModel):
     api_key: str
+
+
+class IntegrationUpsert(BaseModel):
+    base_url: str = Field(min_length=1, max_length=512)
+    api_key: Optional[str] = Field(default=None, max_length=512)
+    verify_tls: bool = False
+
+
+class IntegrationTest(BaseModel):
+    base_url: Optional[str] = Field(default=None, max_length=512)
+    api_key: Optional[str] = Field(default=None, max_length=512)
+    verify_tls: Optional[bool] = None

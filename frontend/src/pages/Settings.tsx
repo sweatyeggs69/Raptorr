@@ -2,6 +2,7 @@ import { Check, KeyRound } from "lucide-react";
 import { FormEvent, useEffect, useState } from "react";
 import { api, ApiError } from "../api";
 import { useAuth } from "../auth";
+import ConsoleIntegrations from "../components/ConsoleIntegrations";
 import PageHeader from "../components/PageHeader";
 
 type ApiKeyInfo = { configured: boolean; masked: string };
@@ -55,7 +56,7 @@ export default function SettingsPage() {
         title="Settings"
         subtitle="Configure Raptorr and the UniFi Site Manager integration."
       />
-      <div className="px-8 py-6">
+      <div className="space-y-6 px-8 py-6">
         <div className="card max-w-2xl p-5">
           <div className="flex items-center gap-2">
             <KeyRound size={16} className="text-ink-500" />
@@ -114,6 +115,8 @@ export default function SettingsPage() {
             </form>
           )}
         </div>
+
+        <ConsoleIntegrations canManage={canManage} />
       </div>
     </div>
   );
