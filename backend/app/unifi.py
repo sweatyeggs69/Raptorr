@@ -88,7 +88,7 @@ class UniFiClient:
         return results
 
     async def list_devices(self, host_ids: list[str] | None = None) -> list[dict]:
-        params: dict[str, Any] = {"time": "latest"}
+        params: dict[str, Any] = {}
         if host_ids:
             params["hostIds[]"] = host_ids
         data = await self._get("/devices", params=params)
