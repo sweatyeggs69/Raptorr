@@ -15,6 +15,8 @@ type Device = {
   adopted: boolean | null;
   uptime_sec: number | null;
   site: string | null;
+  site_id: string | null;
+  site_name: string | null;
   host_id: string | null;
   host_name: string | null;
   host_ip: string | null;
@@ -25,6 +27,7 @@ type Device = {
 
 type SearchResponse = {
   total_hosts: number;
+  total_sites: number;
   total_devices: number;
   devices: Device[];
 };
@@ -96,7 +99,7 @@ export default function DevicesPage() {
 
   const countLabel = useMemo(() => {
     if (!data) return "";
-    return `${data.total_devices} device${data.total_devices === 1 ? "" : "s"} across ${data.total_hosts} host${data.total_hosts === 1 ? "" : "s"}`;
+    return `${data.total_devices} device${data.total_devices === 1 ? "" : "s"} · ${data.total_sites} site${data.total_sites === 1 ? "" : "s"} · ${data.total_hosts} console${data.total_hosts === 1 ? "" : "s"}`;
   }, [data]);
 
   return (
@@ -177,7 +180,7 @@ export default function DevicesPage() {
                     <td className="td font-mono text-xs">{d.ip || "—"}</td>
                     <td className="td">{statusBadge(d.status)}</td>
                     <td className="td">{fmtUptime(d.uptime_sec)}</td>
-                    <td className="td">{d.site || "—"}</td>
+                    <td className="td">{d.site_name || d.site || "—"}</td>
                     <td className="td text-ink-500">{d.host_name || "—"}</td>
                     <td className="td text-right">
                       {d.console_cloud_url ? (
@@ -266,10 +269,10 @@ export default function DevicesPage() {
               </div>
               <div>
                 <div className="label">Site</div>
-                <div>{selected.site || "—"}</div>
+                <div>{selected.site_name || selected.site || "—"}</div>
               </div>
               <div>
-                <div className="label">Host</div>
+                <div className="label">Console</div>
                 <div>{selected.host_name || "—"}</div>
               </div>
             </div>

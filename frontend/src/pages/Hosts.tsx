@@ -1,5 +1,6 @@
-import { ExternalLink, Server } from "lucide-react";
+import { ChevronRight, ExternalLink, Server } from "lucide-react";
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import { api, ApiError } from "../api";
 import PageHeader from "../components/PageHeader";
 
@@ -12,7 +13,8 @@ type Host = {
   host_ip: string | null;
   console_cloud_url: string | null;
   console_local_url: string | null;
-  raw: Record<string, unknown>;
+  site_count: number;
+  device_count: number;
 };
 
 export default function HostsPage() {
@@ -49,20 +51,23 @@ export default function HostsPage() {
                 <th className="th">Type</th>
                 <th className="th">Version</th>
                 <th className="th">IP</th>
+                <th className="th text-right">Sites</th>
+                <th className="th text-right">Devices</th>
                 <th className="th text-right">Open</th>
+                <th className="th"></th>
               </tr>
             </thead>
             <tbody>
               {!hosts && !error && (
                 <tr>
-                  <td className="td text-ink-500" colSpan={5}>
+                  <td className="td text-ink-500" colSpan={8}>
                     Loading…
                   </td>
                 </tr>
               )}
               {hosts && hosts.length === 0 && (
                 <tr>
-                  <td className="td text-ink-500" colSpan={5}>
+                  <td className="td text-ink-500" colSpan={8}>
                     No hosts visible.
                   </td>
                 </tr>
@@ -72,10 +77,23 @@ export default function HostsPage() {
                   key={h.id || h.hardware_id || h.name || ""}
                   className="border-t border-ink-100 hover:bg-ink-50"
                 >
-                  <td className="td font-medium">{h.name || "—"}</td>
+                  <td className="td font-medium">
+                    {h.id ? (
+                      <Link
+                        to={`/hosts/${encodeURIComponent(h.id)}`}
+                        className="hover:underline"
+                      >
+                        {h.name || "—"}
+                      </Link>
+                    ) : (
+                      h.name || "—"
+                    )}
+                  </td>
                   <td className="td">{h.type || "—"}</td>
                   <td className="td text-ink-500">{h.version || "—"}</td>
                   <td className="td font-mono text-xs">{h.host_ip || "—"}</td>
+                  <td className="td text-right">{h.site_count}</td>
+                  <td className="td text-right">{h.device_count}</td>
                   <td className="td text-right">
                     <div className="flex justify-end gap-1">
                       {h.console_local_url && (
@@ -101,6 +119,17 @@ export default function HostsPage() {
                         </a>
                       )}
                     </div>
+                  </td>
+                  <td className="td text-right">
+                    {h.id && (
+                      <Link
+                        to={`/hosts/${encodeURIComponent(h.id)}`}
+                        className="inline-flex items-center text-ink-400 hover:text-ink-900"
+                        title="View sites and devices"
+                      >
+                        <ChevronRight size={16} />
+                      </Link>
+                    )}
                   </td>
                 </tr>
               ))}
