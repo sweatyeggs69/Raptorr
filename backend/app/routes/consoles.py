@@ -3,6 +3,7 @@ from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException
 from sqlmodel import Session, select
 
+from ..crypto import decrypt, encrypt
 from ..db import get_session
 from ..deps import require
 from ..local_unifi import (
@@ -21,7 +22,7 @@ def _serialize(row: ConsoleIntegration) -> dict:
     return {
         "host_id": row.host_id,
         "base_url": row.base_url,
-        "api_key_masked": mask_key(row.api_key),
+        "api_key_masked": mask_key(decrypt(row.api_key)),
         "verify_tls": row.verify_tls,
         "last_test_at": row.last_test_at.isoformat() if row.last_test_at else None,
         "last_test_ok": row.last_test_ok,
@@ -72,7 +73,7 @@ def upsert_integration(
     if existing:
         existing.base_url = payload.base_url.strip()
         if payload.api_key:
-            existing.api_key = payload.api_key.strip()
+            existing.api_key = encrypt(payload.api_key.strip())
         existing.verify_tls = payload.verify_tls
         existing.updated_at = now
         db.add(existing)
@@ -84,7 +85,7 @@ def upsert_integration(
     row = ConsoleIntegration(
         host_id=host_id,
         base_url=payload.base_url.strip(),
-        api_key=payload.api_key.strip(),
+        api_key=encrypt(payload.api_key.strip()),
         verify_tls=payload.verify_tls,
         created_at=now,
         updated_at=now,
@@ -118,7 +119,11 @@ async def test_integration(
     saved = db.get(ConsoleIntegration, host_id)
 
     base_url = (payload.base_url or (saved.base_url if saved else "")).strip()
-    api_key = (payload.api_key or (saved.api_key if saved else "")).strip()
+    api_key = (
+        payload.api_key
+        if payload.api_key
+        else (decrypt(saved.api_key) if saved else "")
+    ).strip()
     if payload.verify_tls is None:
         verify_tls = saved.verify_tls if saved else False
     else:
@@ -154,7 +159,9 @@ def _client_for(db: Session, host_id: str) -> LocalUniFiClient:
     if not integration:
         raise HTTPException(404, "No local integration configured for this host")
     return LocalUniFiClient(
-        integration.base_url, integration.api_key, integration.verify_tls
+        integration.base_url,
+        decrypt(integration.api_key),
+        integration.verify_tls,
     )
 
 

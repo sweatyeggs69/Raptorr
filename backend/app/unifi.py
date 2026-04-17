@@ -8,6 +8,7 @@ from fastapi import HTTPException
 from sqlmodel import Session, select
 
 from .config import settings
+from .crypto import decrypt, encrypt
 from .models import AppSetting
 
 API_KEY_SETTING = "unifi_api_key"
@@ -20,15 +21,16 @@ def get_api_key(db: Session) -> str:
             status_code=409,
             detail="UniFi API key not configured. Set it in Settings.",
         )
-    return row.value
+    return decrypt(row.value)
 
 
 def set_api_key(db: Session, value: str) -> None:
     row = db.get(AppSetting, API_KEY_SETTING)
+    encrypted = encrypt(value)
     if row:
-        row.value = value
+        row.value = encrypted
     else:
-        row = AppSetting(key=API_KEY_SETTING, value=value)
+        row = AppSetting(key=API_KEY_SETTING, value=encrypted)
     db.add(row)
     db.commit()
 

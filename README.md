@@ -90,10 +90,39 @@ Vite dev server runs on <http://localhost:5173> and proxies `/api` to 8080.
 The `admin` built-in role always has every permission and can't be modified
 or deleted.
 
-## Notes
+## Security
 
-- The API key is stored unencrypted in the SQLite database. Protect the
-  `/data` volume accordingly.
-- HTTPS isn't terminated by the container — put it behind a reverse proxy
-  (Caddy, nginx, Traefik) for real deployments. Once you do, set the
-  cookie to `secure` by serving over HTTPS only.
+**Secrets at rest.** All UniFi credentials stored in the SQLite database are
+encrypted with Fernet (AES-128-CBC + HMAC-SHA256). The encryption key is
+derived from `SECRET_KEY` via HKDF, so:
+
+- The encryption key never lives in the database.
+- Rotating `SECRET_KEY` rotates the encryption key.
+- Anyone with DB-only access can't read the API keys without `SECRET_KEY`.
+- **`SECRET_KEY` must be preserved across restarts.** It is auto-generated
+  once and persisted to `/data/.secret_key`. If you recreate the container
+  without keeping `/data`, stored secrets become unreadable and you'll need
+  to re-enter them.
+
+User passwords are hashed with bcrypt. Session IDs are random opaque tokens
+(not a secret source, so not encrypted).
+
+**In transit.**
+
+- Raptorr ↔ `api.ui.com` and browser ↔ `unifi.ui.com` are HTTPS with
+  certificate verification.
+- Raptorr ↔ local UOS console is HTTPS. Per-integration `verify_tls` toggle
+  lets you keep cert verification on when going through the cloud proxy and
+  turn it off for direct LAN connections with self-signed certs.
+- Browser ↔ Raptorr is **plain HTTP** inside the container. Put Raptorr
+  behind a reverse proxy (Caddy, nginx, Traefik) that terminates TLS, then
+  set `COOKIE_SECURE=true` so session cookies are only sent over HTTPS:
+
+  ```yaml
+  environment:
+    COOKIE_SECURE: "true"
+  ```
+
+**Backups.** The `/data` volume contains the SQLite DB and the persisted
+`SECRET_KEY`. Back them up together — the DB is useless without the key,
+and the key is useless without the DB.
