@@ -1,4 +1,4 @@
-import { RefreshCw, Search } from "lucide-react";
+import { ExternalLink, RefreshCw, Search, Server } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { api, ApiError } from "../api";
 import Modal from "../components/Modal";
@@ -17,6 +17,9 @@ type Device = {
   site: string | null;
   host_id: string | null;
   host_name: string | null;
+  host_ip: string | null;
+  console_cloud_url: string | null;
+  console_local_url: string | null;
   raw: Record<string, unknown>;
 };
 
@@ -144,19 +147,20 @@ export default function DevicesPage() {
                   <th className="th">Uptime</th>
                   <th className="th">Site</th>
                   <th className="th">Host</th>
+                  <th className="th text-right">Open</th>
                 </tr>
               </thead>
               <tbody>
                 {loading && !data && (
                   <tr>
-                    <td className="td text-ink-500" colSpan={8}>
+                    <td className="td text-ink-500" colSpan={9}>
                       Loading…
                     </td>
                   </tr>
                 )}
                 {data && data.devices.length === 0 && (
                   <tr>
-                    <td className="td text-ink-500" colSpan={8}>
+                    <td className="td text-ink-500" colSpan={9}>
                       No devices match.
                     </td>
                   </tr>
@@ -175,6 +179,22 @@ export default function DevicesPage() {
                     <td className="td">{fmtUptime(d.uptime_sec)}</td>
                     <td className="td">{d.site || "—"}</td>
                     <td className="td text-ink-500">{d.host_name || "—"}</td>
+                    <td className="td text-right">
+                      {d.console_cloud_url ? (
+                        <a
+                          href={d.console_cloud_url}
+                          target="_blank"
+                          rel="noreferrer noopener"
+                          onClick={(e) => e.stopPropagation()}
+                          className="inline-flex items-center gap-1 text-ink-500 hover:text-ink-900"
+                          title="Open console at unifi.ui.com"
+                        >
+                          <ExternalLink size={14} />
+                        </a>
+                      ) : (
+                        <span className="text-ink-300">—</span>
+                      )}
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -188,9 +208,33 @@ export default function DevicesPage() {
         onClose={() => setSelected(null)}
         title={selected?.name || "Device"}
         footer={
-          <button className="btn" onClick={() => setSelected(null)}>
-            Close
-          </button>
+          <>
+            {selected?.console_local_url && (
+              <a
+                className="btn mr-auto"
+                href={selected.console_local_url}
+                target="_blank"
+                rel="noreferrer noopener"
+              >
+                <Server size={14} />
+                Open local ({selected.host_ip})
+              </a>
+            )}
+            {selected?.console_cloud_url && (
+              <a
+                className="btn btn-primary"
+                href={selected.console_cloud_url}
+                target="_blank"
+                rel="noreferrer noopener"
+              >
+                <ExternalLink size={14} />
+                Open in UniFi
+              </a>
+            )}
+            <button className="btn" onClick={() => setSelected(null)}>
+              Close
+            </button>
+          </>
         }
       >
         {selected && (

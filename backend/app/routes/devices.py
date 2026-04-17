@@ -9,6 +9,33 @@ from ..unifi import UniFiClient, cache, get_api_key
 router = APIRouter()
 
 
+CLOUD_CONSOLE_BASE = "https://unifi.ui.com/consoles"
+
+
+def _host_ip(host_meta: dict) -> str | None:
+    for key in ("ip", "mgmtIp", "hostIp"):
+        value = host_meta.get(key)
+        if isinstance(value, str) and value:
+            return value
+    ip_addrs = host_meta.get("ipAddrs") or host_meta.get("ip_addresses")
+    if isinstance(ip_addrs, list) and ip_addrs:
+        first = ip_addrs[0]
+        if isinstance(first, str):
+            return first
+        if isinstance(first, dict):
+            for k in ("ip", "addr", "address"):
+                if isinstance(first.get(k), str) and first.get(k):
+                    return first[k]
+    return None
+
+
+def _console_links(host_id: str | None, host_meta: dict) -> dict[str, str | None]:
+    cloud = f"{CLOUD_CONSOLE_BASE}/{host_id}" if host_id else None
+    ip = _host_ip(host_meta)
+    local = f"https://{ip}" if ip else None
+    return {"cloud_url": cloud, "local_url": local, "host_ip": ip}
+
+
 def _flatten_devices(hosts: list[dict], devices_payload: list[dict]) -> list[dict]:
     host_by_id: dict[str, dict] = {}
     for h in hosts:
@@ -22,6 +49,7 @@ def _flatten_devices(hosts: list[dict], devices_payload: list[dict]) -> list[dic
         host = host_by_id.get(host_id, {})
         host_meta = host.get("reportedState", {}) if isinstance(host, dict) else {}
         host_name = host_meta.get("hostname") or host_meta.get("name") or host.get("hostname")
+        links = _console_links(host_id, host_meta)
         for d in entry.get("devices", []):
             flat.append(
                 {
@@ -37,6 +65,9 @@ def _flatten_devices(hosts: list[dict], devices_payload: list[dict]) -> list[dic
                     "site": d.get("siteName") or d.get("site"),
                     "host_id": host_id,
                     "host_name": host_name,
+                    "console_cloud_url": links["cloud_url"],
+                    "console_local_url": links["local_url"],
+                    "host_ip": links["host_ip"],
                     "raw": d,
                 }
             )
@@ -98,3 +129,32 @@ async def list_sites(
     client = UniFiClient(api_key)
     sites = await cache.get_or_set("sites", client.list_sites)
     return sites
+
+
+@router.get("/hosts")
+async def list_hosts(
+    _: User = Depends(require("devices:read")),
+    db: Session = Depends(get_session),
+):
+    api_key = get_api_key(db)
+    client = UniFiClient(api_key)
+    hosts = await cache.get_or_set("hosts", client.list_hosts)
+    summarized: list[dict] = []
+    for h in hosts:
+        host_id = h.get("id") or h.get("hostId")
+        meta = h.get("reportedState") if isinstance(h.get("reportedState"), dict) else {}
+        links = _console_links(host_id, meta)
+        summarized.append(
+            {
+                "id": host_id,
+                "name": meta.get("name") or meta.get("hostname") or h.get("hostname"),
+                "hardware_id": meta.get("hardwareId") or h.get("hardwareId"),
+                "type": meta.get("type") or h.get("type"),
+                "version": meta.get("version") or h.get("version"),
+                "host_ip": links["host_ip"],
+                "console_cloud_url": links["cloud_url"],
+                "console_local_url": links["local_url"],
+                "raw": h,
+            }
+        )
+    return summarized
