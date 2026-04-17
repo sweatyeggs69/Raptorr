@@ -1,0 +1,16 @@
+**/__pycache__
+**/.pytest_cache
+**/.mypy_cache
+**/*.pyc
+**/.venv
+**/venv
+**/node_modules
+**/dist
+**/.env
+**/.env.*
+**/.git
+**/.gitignore
+**/.vscode
+**/.idea
+**/data
+README.md
