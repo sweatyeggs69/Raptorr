@@ -56,6 +56,25 @@ Data is persisted to `/data` inside the container. Mount it to a host path.
 The Site Manager API is currently read-only and rate-limited to 100 req/min.
 Raptorr caches `hosts`/`devices` responses to stay well under that.
 
+## Local console integrations (optional)
+
+The Site Manager cloud API returns lagging, aggregated device state with no
+per-site attribution. To get fresh, site-accurate devices and clients straight
+from a UOS console, configure a local Network Integration API integration per
+console in **Settings → UniFi OS consoles**.
+
+Requirements:
+
+1. A **Control Plane API key** generated on the UOS console
+   (*Control Plane → Admins & Users → Create API Key*). This is different from
+   the Site Manager API key at unifi.ui.com.
+2. **Network reachability** from the Raptorr container to the console's IP or
+   hostname on TCP 443. Same LAN works directly; otherwise add a VPN/Tailscale
+   sidecar to the compose stack.
+
+The `unifi.ui.com` cloud proxy is *not* supported — that path requires
+browser session cookies and does not accept the Control Plane API key.
+
 ## Development
 
 Run the backend and frontend separately while iterating:

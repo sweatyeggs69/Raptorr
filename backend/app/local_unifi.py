@@ -144,34 +144,19 @@ def mask_key(key: str) -> str:
 
 
 def suggest_base_urls(host_id: str, host_ip: str | None = None) -> list[dict[str, Any]]:
-    """Ordered list of URL candidates to try for a given console.
+    """URL suggestions for a given console.
 
-    LAN first because the Control Plane API key is only honored on the
-    console's local endpoint. The `unifi.ui.com`/`api.ui.com` proxy paths are
-    included for completeness but they require browser session cookies, not
-    the API key — they'll return an HTML login page.
+    The Control Plane API key is only honored on the console's local endpoint
+    (direct LAN or VPN-reachable IP/hostname). The unifi.ui.com cloud proxy
+    expects browser session cookies, so we don't offer it.
     """
     candidates: list[dict[str, Any]] = []
     if host_ip:
         candidates.append(
             {
-                "label": f"LAN ({host_ip}) — recommended",
+                "label": f"LAN ({host_ip})",
                 "base_url": f"https://{host_ip}",
                 "verify_tls": False,
             }
         )
-    candidates.extend(
-        [
-            {
-                "label": "Cloud proxy (unifi.ui.com) — browser-only, won't accept API key",
-                "base_url": f"https://unifi.ui.com/proxy/consoles/{host_id}",
-                "verify_tls": True,
-            },
-            {
-                "label": "Cloud proxy (api.ui.com) — browser-only, won't accept API key",
-                "base_url": f"https://api.ui.com/proxy/consoles/{host_id}",
-                "verify_tls": True,
-            },
-        ]
-    )
     return candidates

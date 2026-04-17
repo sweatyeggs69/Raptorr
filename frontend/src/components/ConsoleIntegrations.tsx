@@ -86,8 +86,10 @@ export default function ConsoleIntegrations({
       </div>
       <p className="mt-1 text-sm text-ink-500">
         The Site Manager API returns aggregated, sometimes-stale data with no per-site
-        device attribution. Configure a local Control Plane API key per console to get
-        fresh, site-accurate devices and clients directly from the UOS Network app.
+        device attribution. Point Raptorr at a console's local Network Integration API
+        with a Control Plane key to get fresh, site-accurate devices and clients.{" "}
+        <strong>Raptorr must be able to reach the console's IP</strong> (same LAN, or via
+        a VPN/Tailscale sidecar); the unifi.ui.com cloud proxy does not accept API keys.
       </p>
 
       {error && (
@@ -296,12 +298,12 @@ function IntegrationEditor({
             className="input font-mono text-xs"
             value={baseUrl}
             onChange={(e) => setBaseUrl(e.target.value)}
-            placeholder="https://unifi.ui.com/proxy/consoles/…"
+            placeholder="https://10.0.0.1 or https://unifi.example.lan"
             required
           />
           {suggestions.length > 0 && (
             <div className="mt-2 flex flex-wrap gap-1">
-              <span className="text-xs text-ink-500">Try:</span>
+              <span className="text-xs text-ink-500">Suggested:</span>
               {suggestions.map((s) => (
                 <button
                   type="button"
@@ -318,6 +320,10 @@ function IntegrationEditor({
               ))}
             </div>
           )}
+          <p className="mt-1 text-xs text-ink-500">
+            Use the console's IP or hostname (LAN or VPN reachable). Raptorr must be
+            able to connect to it over the network.
+          </p>
         </div>
 
         <div>
