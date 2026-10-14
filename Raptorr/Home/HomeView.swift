@@ -7,6 +7,7 @@ struct HomeView: View {
 
     @Environment(\.plexClient) private var client
     @Environment(\.plexServer) private var server
+    @Environment(TabRouter.self) private var router
     @State private var viewModel = HomeViewModel()
     @State private var path = NavigationPath()
     @State private var snapTask: Task<Void, Never>?
@@ -69,10 +70,16 @@ struct HomeView: View {
                         // except the tab bar.
                         VStack(alignment: .leading, spacing: 0) {
                             ForEach(viewModel.rows) { row in
-                                MediaShelf(title: row.title, items: row.items, style: row.style) { item in
-                                    focus(item, inRow: row.id)
-                                    snap(to: row.id, proxy: proxy)
-                                }
+                                MediaShelf(
+                                    title: row.title,
+                                    items: row.items,
+                                    style: row.style,
+                                    onFocus: { item in
+                                        focus(item, inRow: row.id)
+                                        snap(to: row.id, proxy: proxy)
+                                    },
+                                    resetID: router.homeReturns
+                                )
                                 // Room below the cards for the focus lift, so the focus engine
                                 // has no reason to scroll.
                                 .padding(.bottom, Self.liftAllowance)
@@ -100,6 +107,14 @@ struct HomeView: View {
                             .padding(.bottom, -200)
                     }
                     .frame(height: Self.rowAreaHeight)
+                    // Coming back from another tab starts over: back to the top level, the
+                    // first row and its first card, like the TV app.
+                    .onChange(of: router.homeReturns) {
+                        path = NavigationPath()
+                        guard let row = viewModel.rows.first, let item = row.items.first else { return }
+                        focus(item, inRow: row.id)
+                        proxy.scrollTo(row.id, anchor: .bottom)
+                    }
                 }
             }
             // Keeps the header clear of the tab bar.
@@ -139,4 +154,5 @@ struct HomeView: View {
 
 #Preview {
     HomeView(sections: [])
+        .environment(TabRouter())
 }
