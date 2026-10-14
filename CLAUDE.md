@@ -36,7 +36,7 @@ Before implementing any feature, control, layout, or behavior, check whether tvO
 - Focus: cards (posters, 16:9 cards, episode rows, cast) use `.buttonStyle(.focusBorder)` with `.focusBorder(shape)` on their artwork, a white border instead of the system zoom (Kyle's call). Other controls keep the system focus effects.
 - Rows of cards and button rows use `.fullWidthFocusSection()`, so up or down reaches a short row from anywhere across the screen.
 - Watched items show `WatchedBadge`: a small black check in a white circle.
-- Remote input: `.onPlayPauseCommand`, `.onMoveCommand`, `.onExitCommand`. Back (`onExitCommand`) pops detail pages (`PopOnExitModifier`). In a library grid or Settings it's left to the system, which moves focus up to the tab bar (`TabRouter.isContentFocused` tracks this); Back on another tab's tab bar item switches to Home (the `TabView`'s `onExitCommand`); only Home leaves the app.
+- Remote input: `.onPlayPauseCommand`, `.onMoveCommand`, `.onExitCommand`. Back (`onExitCommand`) pops detail pages (`PopOnExitModifier`, which also counts open pages in `TabRouter.visibleDetailPages` so the tab view's Back handler stays off while one shows). In a library grid or Settings it's left to the system, which moves focus up to the tab bar (`TabRouter.isContentFocused` tracks this); Back on another tab's tab bar item switches to Home (the `TabView`'s `onExitCommand`); only Home leaves the app.
 - Search: `Tab(role: .search)` with `.searchable`.
 - Sheets, covers and alerts: system presentations. Confirmations use `.alert` with a destructive action and explicit cancel, never `.confirmationDialog`.
 - Progress: `ProgressView`. Empty and error states: `ContentUnavailableView`.
