@@ -47,7 +47,7 @@ struct LibraryView: View {
             ContentUnavailableView("Nothing Here Yet", systemImage: section.type.systemImage)
         } else {
             ScrollViewReader { proxy in
-                HStack(alignment: .top, spacing: 40) {
+                HStack(spacing: 40) {
                     ScrollView {
                         LazyVGrid(columns: columns, spacing: 60) {
                             ForEach(viewModel.items) { item in
