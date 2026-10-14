@@ -18,6 +18,7 @@ struct CastShelf: View {
             }
             .scrollClipDisabled()
         }
+        .fullWidthFocusSection()
     }
 }
 
