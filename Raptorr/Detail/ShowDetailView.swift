@@ -6,6 +6,9 @@ struct ShowDetailView: View {
     @Environment(\.plexServer) private var server
     @Environment(PlaybackCoordinator.self) private var playback
     @State private var viewModel: ShowDetailViewModel
+    @FocusState private var isPlayFocused: Bool
+    /// Play appears once the episodes load; it takes focus the first time it does.
+    @State private var didFocusPlay = false
 
     init(item: PlexMetadata) {
         _viewModel = State(initialValue: ShowDetailViewModel(item: item))
@@ -24,6 +27,7 @@ struct ShowDetailView: View {
                     } label: {
                         Label(playLabel(for: next), systemImage: "play.fill")
                     }
+                    .focused($isPlayFocused)
                     .fullWidthFocusSection()
                 }
 
@@ -59,6 +63,12 @@ struct ShowDetailView: View {
         }
         .background {
             BackdropView(path: show.backdropPath)
+        }
+        .defaultFocus($isPlayFocused, true)
+        .onChange(of: viewModel.nextEpisode != nil, initial: true) { _, hasPlay in
+            guard hasPlay, !didFocusPlay else { return }
+            didFocusPlay = true
+            isPlayFocused = true
         }
         .task {
             await viewModel.load(server: server, client: client)

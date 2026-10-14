@@ -6,6 +6,7 @@ struct ItemDetailView: View {
     @Environment(\.plexServer) private var server
     @Environment(PlaybackCoordinator.self) private var playback
     @State private var viewModel: ItemDetailViewModel
+    @FocusState private var isPlayFocused: Bool
 
     init(item: PlexMetadata) {
         _viewModel = State(initialValue: ItemDetailViewModel(item: item))
@@ -39,6 +40,7 @@ struct ItemDetailView: View {
                         Button(resumeText, systemImage: "play.fill") {
                             playback.play(item, resume: true)
                         }
+                        .focused($isPlayFocused)
                         Button {
                             playback.play(item, resume: false)
                         } label: {
@@ -49,6 +51,7 @@ struct ItemDetailView: View {
                         Button("Play", systemImage: "play.fill") {
                             playback.play(item, resume: false)
                         }
+                        .focused($isPlayFocused)
                     }
 
                     Button {
@@ -92,6 +95,7 @@ struct ItemDetailView: View {
         .background {
             BackdropView(path: item.backdropPath)
         }
+        .defaultFocus($isPlayFocused, true)
         .task {
             await viewModel.load(server: server, client: client)
         }

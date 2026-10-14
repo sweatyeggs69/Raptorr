@@ -52,6 +52,8 @@ struct SettingsView: View {
                 }
                 .frame(maxWidth: .infinity)
             }
+            // Coming down from the tab bar always lands on the first row.
+            .defaultFocus($focusedRow, "tabBarIcons", priority: .userInitiated)
             // Back from the list moves focus up to the tab bar, as in the libraries.
             .onChange(of: focusedRow) { _, row in
                 router.isContentFocused = row != nil
