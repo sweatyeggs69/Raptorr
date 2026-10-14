@@ -39,6 +39,12 @@ struct PersonView: View {
                         Text(person.tag ?? "")
                             .font(.title.bold())
 
+                        if let lifeDates = viewModel.lifeDates {
+                            Text(lifeDates)
+                                .font(.headline)
+                                .foregroundStyle(.secondary)
+                        }
+
                         if let biography = viewModel.biography {
                             Text(biography)
                                 .font(.body)

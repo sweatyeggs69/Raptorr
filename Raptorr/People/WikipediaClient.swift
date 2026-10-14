@@ -14,11 +14,12 @@ nonisolated struct WikipediaClient: Sendable {
 
     var session: URLSession = .shared
 
-    func biography(for name: String) async -> String? {
+    /// The person's article summary, or nil when no performer's article matches the name.
+    func article(for name: String) async -> WikipediaSummary? {
         for title in [name, "\(name) (actor)", "\(name) (actress)"] {
             guard let summary = await summary(title: title) else { continue }
             if summary.type == "standard", Self.isPerformer(summary), let extract = summary.extract, !extract.isEmpty {
-                return extract
+                return summary
             }
         }
         return nil
