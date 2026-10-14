@@ -18,6 +18,13 @@ struct HomeView: View {
             content
                 .metadataDestinations()
         }
+        // A Top Shelf card opens its page on top of Home.
+        .onChange(of: router.pendingItem, initial: true) { _, item in
+            guard let item else { return }
+            path = NavigationPath()
+            path.append(item)
+            router.pendingItem = nil
+        }
         // Reloads when the libraries change or the connection moves (local, remote, relay).
         // Also reloads when a background sync finishes, picking up added or changed titles.
         .task(id: server.uri + "|" + sections.map(\.key).joined(separator: ",") + "|\(activity.libraryRevision)") {

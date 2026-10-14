@@ -45,6 +45,11 @@ struct MainTabView: View {
             .task {
                 await viewModel.keepConnectionFresh(connection: connection, client: client, token: authStore.token)
             }
+            // Top Shelf cards: selecting one opens its page, Play resumes it.
+            .onOpenURL { url in
+                guard let link = TopShelfLink(url: url) else { return }
+                Task { await open(link) }
+            }
             .onChange(of: scenePhase) { _, phase in
                 guard phase == .active else { return }
                 Task { await connection.refreshConnection(token: authStore.token, client: client) }
@@ -135,6 +140,30 @@ struct MainTabView: View {
             await LibraryPrefetcher(client: client).run(sections: sections, server: server, force: force)
         }
         if finished { activity.libraryDidChange() }
+    }
+
+    private func open(_ link: TopShelfLink) async {
+        let server = activeServer
+        guard link.machineIdentifier == server.machineIdentifier else { return }
+        switch link.action {
+        case .play:
+            // The server's resume point first, since it may be newer than the cached one.
+            guard let item = await metadata(link.ratingKey, server: server, sources: [.network, .cache]) else { return }
+            playback.play(item)
+        case .show:
+            guard let item = await metadata(link.ratingKey, server: server, sources: [.cache, .network]) else { return }
+            playback.request = nil
+            router.show(item)
+        }
+    }
+
+    private func metadata(_ ratingKey: String, server: PlexServer, sources: [DataSource]) async -> PlexMetadata? {
+        for source in sources {
+            if let item = try? await client.metadata(server: server, ratingKey: ratingKey, from: source) {
+                return item
+            }
+        }
+        return nil
     }
 
     private func cachePosters() async {

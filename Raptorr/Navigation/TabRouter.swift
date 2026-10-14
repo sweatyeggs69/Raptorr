@@ -6,7 +6,7 @@ import Observation
 final class TabRouter {
     var selection: AppTab = .home {
         didSet {
-            if selection == .home, oldValue != .home { homeReturns += 1 }
+            if selection == .home, oldValue != .home, pendingItem == nil { homeReturns += 1 }
             if selection != oldValue { isContentFocused = false }
         }
     }
@@ -19,4 +19,13 @@ final class TabRouter {
     /// Counts returns to Home from another tab, so Home can start over from its first row
     /// instead of putting focus back on the card it last had.
     private(set) var homeReturns = 0
+
+    /// An item whose page Home should open, from a Top Shelf card. Home pushes it and clears it.
+    var pendingItem: PlexMetadata?
+
+    /// Switches to Home and opens the item's page there.
+    func show(_ item: PlexMetadata) {
+        pendingItem = item
+        selection = .home
+    }
 }

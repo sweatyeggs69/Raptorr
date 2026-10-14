@@ -26,6 +26,7 @@ nonisolated final class PlexAPIClient: Sendable {
         ImageMemoryCache.shared.removeAll()
         ImageMemoryCache.backdrops.removeAll()
         LibraryPrefetcher.resetSchedule()
+        await TopShelfPublisher.clear()
     }
 
     // MARK: - plex.tv

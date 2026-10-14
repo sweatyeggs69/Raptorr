@@ -170,6 +170,10 @@ final class PlayerViewModel {
             if watched {
                 await client.scrobble(server: server, ratingKey: item.ratingKey)
             }
+            // The Top Shelf's Continue Watching now has a new resume point (or one item fewer).
+            if let hubs = try? await client.continueWatching(server: server) {
+                await TopShelfPublisher(client: client).publish(hubs.flatMap(\.items), server: server)
+            }
         }
     }
 
