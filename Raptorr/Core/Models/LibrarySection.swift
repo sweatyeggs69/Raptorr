@@ -10,7 +10,7 @@ nonisolated struct LibrarySection: Decodable, Sendable, Hashable, Identifiable {
 
     var id: String { key }
 
-    /// Plexiglass only browses movie and TV libraries.
+    /// Raptorr only browses movie and TV libraries.
     var isSupported: Bool { type == .movie || type == .show }
 
     enum CodingKeys: String, CodingKey {
