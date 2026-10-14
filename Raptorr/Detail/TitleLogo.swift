@@ -22,7 +22,7 @@ struct TitleLogo: View {
     @Environment(\.plexServer) private var server
 
     var body: some View {
-        // Logo, fallback text and loading state all fill the same box, anchored bottom left,
+        // Logo, fallback text and loading state all fill the same box, centered vertically on the left edge,
         // so switching between titles never changes the layout around it.
         sized(content)
             .animation(.easeInOut(duration: 0.35), value: logoPath)
@@ -38,7 +38,7 @@ struct TitleLogo: View {
                 .fixedSize(horizontal: true, vertical: false)
         } else {
             view
-                .frame(width: maxWidth, height: maxHeight, alignment: .bottomLeading)
+                .frame(width: maxWidth, height: maxHeight, alignment: .leading)
         }
     }
 
@@ -48,8 +48,8 @@ struct TitleLogo: View {
             Color.clear
         } else if let url = client.logoURL(server: server, path: logoPath, width: Int(maxWidth * 2), height: Int(maxHeight * 2)) {
             // The fitted logo is usually narrower or shorter than the box; it sits in the
-            // bottom left corner and crossfades when the title changes.
-            CrossfadeImage(url: url, contentMode: .fit, alignment: .bottomLeading, sizesToImage: hugsContent) { failed in
+            // vertical middle of the left edge, with equal space above and below, and crossfades when the title changes.
+            CrossfadeImage(url: url, contentMode: .fit, alignment: .leading, sizesToImage: hugsContent) { failed in
                 if failed {
                     titleText
                 } else {
@@ -69,7 +69,7 @@ struct TitleLogo: View {
             .lineLimit(2)
             .minimumScaleFactor(0.6)
             .multilineTextAlignment(.leading)
-            .frame(maxWidth: hugsContent ? nil : .infinity, maxHeight: .infinity, alignment: .bottomLeading)
+            .frame(maxWidth: hugsContent ? nil : .infinity, maxHeight: .infinity, alignment: .leading)
     }
 }
 
