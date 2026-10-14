@@ -17,7 +17,12 @@ nonisolated struct TopShelfPublisher: Sendable {
             TopShelfStore.log("no App Group container; check the App Groups capability on the Raptorr target")
             return
         }
-        try? FileManager.default.createDirectory(at: imagesDirectory, withIntermediateDirectories: true)
+        do {
+            try FileManager.default.createDirectory(at: imagesDirectory, withIntermediateDirectories: true)
+        } catch {
+            TopShelfStore.log("couldn't create the artwork folder: \(error)")
+            return
+        }
 
         var shelfItems: [TopShelfItem] = []
         for item in items.prefix(Self.maxItems) {
