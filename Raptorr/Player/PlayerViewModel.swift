@@ -114,6 +114,12 @@ final class PlayerViewModel {
         // Seeks land on the nearest keyframe instead of decoding up to the exact frame, which
         // stalled the hardware decoder on large files (resume froze while the clock ran).
         media.addOption(":input-fast-seek")
+        // VLC found no seek index (cues) in these MKVs, so every jump replayed the file from the
+        // start: resume and scrubbing took 20+ seconds. Mapping the clusters when the file
+        // opens gives it a seek point every few seconds instead.
+        if partKey.lowercased().hasSuffix(".mkv") {
+            media.addOption(":mkv-preload-clusters")
+        }
         if let offset = request.startOffsetMs, offset > 0 {
             pendingResumeMs = offset
             currentTimeMs = offset
