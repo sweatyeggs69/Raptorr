@@ -43,6 +43,7 @@ final class HomeViewModel {
         do {
             try await load(sections: sections, server: server, client: client, from: .network)
             errorMessage = nil
+            await TopShelfPublisher(client: client).publish(continueWatching, server: server)
         } catch {
             errorMessage = error.localizedDescription
         }

@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		5A7E00000000000000000011 /* VLCKit in Frameworks */ = {isa = PBXBuildFile; productRef = 5A7E00000000000000000013 /* VLCKit */; };
+		5A7E00000000000000000021 /* RaptorrTopShelf.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 5A7E00000000000000000020 /* RaptorrTopShelf.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -18,11 +19,33 @@
 			remoteGlobalIDString = 5A7E00000000000000000002;
 			remoteInfo = Raptorr;
 		};
+		5A7E00000000000000000023 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 5A7E00000000000000000001 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 5A7E0000000000000000002B;
+			remoteInfo = RaptorrTopShelf;
+		};
 /* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		5A7E00000000000000000022 /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				5A7E00000000000000000021 /* RaptorrTopShelf.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
 		5A7E00000000000000000004 /* Raptorr.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Raptorr.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		5A7E00000000000000000005 /* RaptorrTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = RaptorrTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		5A7E00000000000000000020 /* RaptorrTopShelf.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = RaptorrTopShelf.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -30,8 +53,17 @@
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				Info.plist,
+				Raptorr.entitlements,
 			);
 			target = 5A7E00000000000000000002 /* Raptorr */;
+		};
+		5A7E00000000000000000027 /* Exceptions for "RaptorrTopShelf" folder in "RaptorrTopShelf" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+				RaptorrTopShelf.entitlements,
+			);
+			target = 5A7E0000000000000000002B /* RaptorrTopShelf */;
 		};
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
@@ -47,6 +79,19 @@
 		5A7E00000000000000000007 /* RaptorrTests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = RaptorrTests;
+			sourceTree = "<group>";
+		};
+		5A7E00000000000000000025 /* RaptorrTopShelf */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				5A7E00000000000000000027 /* Exceptions for "RaptorrTopShelf" folder in "RaptorrTopShelf" target */,
+			);
+			path = RaptorrTopShelf;
+			sourceTree = "<group>";
+		};
+		5A7E00000000000000000026 /* Shared */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = Shared;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -67,6 +112,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		5A7E00000000000000000029 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -75,6 +127,8 @@
 			children = (
 				5A7E00000000000000000006 /* Raptorr */,
 				5A7E00000000000000000007 /* RaptorrTests */,
+				5A7E00000000000000000025 /* RaptorrTopShelf */,
+				5A7E00000000000000000026 /* Shared */,
 				5A7E00000000000000000009 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -84,6 +138,7 @@
 			children = (
 				5A7E00000000000000000004 /* Raptorr.app */,
 				5A7E00000000000000000005 /* RaptorrTests.xctest */,
+				5A7E00000000000000000020 /* RaptorrTopShelf.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -98,13 +153,16 @@
 				5A7E0000000000000000000B /* Sources */,
 				5A7E0000000000000000000C /* Frameworks */,
 				5A7E0000000000000000000D /* Resources */,
+				5A7E00000000000000000022 /* Embed Foundation Extensions */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				5A7E00000000000000000024 /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
 				5A7E00000000000000000006 /* Raptorr */,
+				5A7E00000000000000000026 /* Shared */,
 			);
 			name = Raptorr;
 			packageProductDependencies = (
@@ -137,6 +195,29 @@
 			productReference = 5A7E00000000000000000005 /* RaptorrTests.xctest */;
 			productType = "com.apple.product-type.bundle.unit-test";
 		};
+		5A7E0000000000000000002B /* RaptorrTopShelf */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 5A7E0000000000000000002C /* Build configuration list for PBXNativeTarget "RaptorrTopShelf" */;
+			buildPhases = (
+				5A7E00000000000000000028 /* Sources */,
+				5A7E00000000000000000029 /* Frameworks */,
+				5A7E0000000000000000002A /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				5A7E00000000000000000025 /* RaptorrTopShelf */,
+				5A7E00000000000000000026 /* Shared */,
+			);
+			name = RaptorrTopShelf;
+			packageProductDependencies = (
+			);
+			productName = RaptorrTopShelf;
+			productReference = 5A7E00000000000000000020 /* RaptorrTopShelf.appex */;
+			productType = "com.apple.product-type.tv-app-extension";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -153,6 +234,9 @@
 					5A7E00000000000000000003 = {
 						CreatedOnToolsVersion = 27.0;
 						TestTargetID = 5A7E00000000000000000002;
+					};
+					5A7E0000000000000000002B = {
+						CreatedOnToolsVersion = 27.0;
 					};
 				};
 			};
@@ -175,6 +259,7 @@
 			targets = (
 				5A7E00000000000000000002 /* Raptorr */,
 				5A7E00000000000000000003 /* RaptorrTests */,
+				5A7E0000000000000000002B /* RaptorrTopShelf */,
 			);
 		};
 /* End PBXProject section */
@@ -188,6 +273,13 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 		5A7E00000000000000000010 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		5A7E0000000000000000002A /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -211,6 +303,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		5A7E00000000000000000028 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
@@ -218,6 +317,11 @@
 			isa = PBXTargetDependency;
 			target = 5A7E00000000000000000002 /* Raptorr */;
 			targetProxy = 5A7E00000000000000000014 /* PBXContainerItemProxy */;
+		};
+		5A7E00000000000000000024 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 5A7E0000000000000000002B /* RaptorrTopShelf */;
+			targetProxy = 5A7E00000000000000000023 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -346,6 +450,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = "App Icon & Top Shelf Image";
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = Raptorr/Raptorr.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = "";
@@ -381,6 +486,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = "App Icon & Top Shelf Image";
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = Raptorr/Raptorr.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = "";
@@ -451,6 +557,58 @@
 			};
 			name = Release;
 		};
+		5A7E0000000000000000002D /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = RaptorrTopShelf/RaptorrTopShelf.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = "";
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = RaptorrTopShelf/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = RaptorrTopShelf;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.kylemcclain.Raptorr.TopShelf;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = 3;
+			};
+			name = Debug;
+		};
+		5A7E0000000000000000002E /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = RaptorrTopShelf/RaptorrTopShelf.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = "";
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = RaptorrTopShelf/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = RaptorrTopShelf;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.kylemcclain.Raptorr.TopShelf;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = 3;
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -477,6 +635,15 @@
 			buildConfigurations = (
 				5A7E0000000000000000001D /* Debug */,
 				5A7E0000000000000000001E /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		5A7E0000000000000000002C /* Build configuration list for PBXNativeTarget "RaptorrTopShelf" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				5A7E0000000000000000002D /* Debug */,
+				5A7E0000000000000000002E /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
