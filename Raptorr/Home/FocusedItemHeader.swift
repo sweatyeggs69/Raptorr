@@ -29,11 +29,10 @@ struct FocusedItemHeader: View {
             Text(" ")
                 .hidden()
                 .overlay(alignment: .leading) {
-                    MetadataLine(leading: leadingMetadata, rating: item.contentRating, trailing: item.durationText.map { [$0] } ?? [])
+                    ItemMetadataLine(item: item, includesYear: isContinueWatching)
                         .fixedSize()
                 }
                 .font(.headline)
-                .foregroundStyle(.secondary)
 
             Text(item.summary ?? "")
                 .lineLimit(HeaderLayout.summaryLines, reservesSpace: true)
@@ -46,16 +45,6 @@ struct FocusedItemHeader: View {
         Text(title)
             .font(.title3.bold())
             .lineLimit(1)
-    }
-
-    /// What comes before the rating: S#E# and the year on Continue Watching (matching
-    /// `continueWatchingLine`), otherwise the "S2 · E5" label of `infoLine`.
-    private var leadingMetadata: [String] {
-        if isContinueWatching {
-            [item.shortEpisodeLabel, item.year.map(String.init)].compactMap { $0 }
-        } else {
-            [item.episodeLabel].compactMap { $0 }
-        }
     }
 }
 
