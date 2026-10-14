@@ -5,7 +5,6 @@ struct SettingsView: View {
     @Environment(ServerConnectionManager.self) private var connection
     @Environment(\.plexClient) private var client
     @State private var isConfirmingSignOut = false
-    @Environment(TabRouter.self) private var router
     @AppStorage(InterfaceSettings.showsTabIconsKey) private var showsTabIcons = InterfaceSettings.showsTabIconsDefault
 
     var body: some View {
@@ -36,20 +35,18 @@ struct SettingsView: View {
                     }
 
                     Section {
-                        Button("Switch Server", systemImage: "server.rack") {
+                        Button("Switch Server") {
                             // Leaving the server drops everything cached from it.
                             connection.disconnect()
                             Task { await client.clearCache() }
                         }
-                        Button("Sign Out", systemImage: "rectangle.portrait.and.arrow.right", role: .destructive) {
+                        Button("Sign Out", role: .destructive) {
                             isConfirmingSignOut = true
                         }
                     }
                 }
                 .frame(maxWidth: .infinity)
             }
-            // Back goes to Home rather than closing the app.
-            .onExitCommand { router.selection = .home }
             .alert("Sign Out of Plex?", isPresented: $isConfirmingSignOut) {
                 Button("Sign Out", role: .destructive) {
                     connection.disconnect()
@@ -85,5 +82,4 @@ struct SettingsView: View {
     SettingsView()
         .environment(AuthStore())
         .environment(ServerConnectionManager())
-        .environment(TabRouter())
 }

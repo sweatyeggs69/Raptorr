@@ -14,12 +14,14 @@ struct MainTabView: View {
     @State private var isShowingFirstSyncNotice = false
     /// Bumped by the sync button; each bump runs a full sync whether or not one is due.
     @State private var syncRequests = 0
+    @State private var isShowingSettings = false
     @AppStorage(InterfaceSettings.showsTabIconsKey) private var showsTabIcons = InterfaceSettings.showsTabIconsDefault
 
     var body: some View {
         @Bindable var playback = playback
 
-        // Top tab bar like the Apple TV app: Home, one tab per library, Settings, and Search on the right.
+        // Top tab bar like the Apple TV app: Home, one tab per library, and Search. Sync and
+        // Settings sit outside it, on either side.
         TabView(selection: $router.selection) {
             Tab(value: .home) {
                 HomeView(sections: viewModel.sections)
@@ -33,12 +35,6 @@ struct MainTabView: View {
                 } label: {
                     TabLabel(title: section.title, systemImage: section.type.systemImage, showsIcon: showsTabIcons)
                 }
-            }
-
-            Tab(value: .settings) {
-                SettingsView()
-            } label: {
-                TabLabel(title: "Settings", systemImage: "gearshape", showsIcon: showsTabIcons)
             }
 
             Tab(value: .search, role: .search) {
@@ -55,10 +51,16 @@ struct MainTabView: View {
         .onExitCommand(perform: router.isContentFocused || router.selection == .home ? nil : {
             router.selection = .home
         })
-        .overlay(alignment: .topTrailing) {
-            SyncButton(isRunning: activity.isRunning) {
+        .overlay {
+            TopBarAccessories(isSyncing: activity.isRunning) {
                 syncRequests += 1
+            } onSettings: {
+                isShowingSettings = true
             }
+        }
+        // Before the `.environment` modifiers below, so Settings gets them too. Back closes it.
+        .fullScreenCover(isPresented: $isShowingSettings) {
+            SettingsView()
         }
         .environment(router)
         .environment(activity)
