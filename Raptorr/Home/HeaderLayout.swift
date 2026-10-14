@@ -1,7 +1,7 @@
 import SwiftUI
 
-/// Fixed slot sizes for the title area shared by Home and the detail pages, so the logo,
-/// title, metadata and description sit in the same place everywhere and never shift.
+/// Fixed slot sizes for the Home header's title area, so the logo, title, metadata and
+/// description never shift as focus moves.
 enum HeaderLayout {
     static let logoWidth: CGFloat = 640
     static let logoHeight: CGFloat = 180

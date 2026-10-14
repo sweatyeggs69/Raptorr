@@ -16,24 +16,11 @@ struct ShowDetailView: View {
 
         ScrollView {
             VStack(alignment: .leading, spacing: 40) {
-                // Same fixed slots as the Home header, so the title area matches Home exactly.
-                VStack(alignment: .leading, spacing: HeaderLayout.spacing) {
-                    TitleLogo(
-                        title: show.title,
-                        logoPath: show.logoPath,
-                        maxWidth: HeaderLayout.logoWidth,
-                        maxHeight: HeaderLayout.logoHeight
-                    )
-                    // The episode title line Home shows for episodes, kept empty here.
-                    Text(" ")
-                        .font(.title3.bold())
-                    Text(viewModel.metadataLine.isEmpty ? " " : viewModel.metadataLine)
+                VStack(alignment: .leading, spacing: 12) {
+                    TitleLogo(title: show.title, logoPath: show.logoPath)
+                    Text(viewModel.metadataLine)
                         .font(.headline)
                         .foregroundStyle(.secondary)
-                        .lineLimit(1)
-                    Text(show.summary ?? "")
-                        .lineLimit(HeaderLayout.summaryLines, reservesSpace: true)
-                        .frame(width: HeaderLayout.summaryWidth, alignment: .topLeading)
                 }
 
                 if let next = viewModel.nextEpisode {
@@ -42,6 +29,12 @@ struct ShowDetailView: View {
                     } label: {
                         Label(playLabel(for: next), systemImage: "play.fill")
                     }
+                }
+
+                if let summary = show.summary, !summary.isEmpty {
+                    Text(summary)
+                        .frame(maxWidth: 1200, alignment: .leading)
+                        .lineLimit(4)
                 }
 
                 if viewModel.seasons.count > 1 {
