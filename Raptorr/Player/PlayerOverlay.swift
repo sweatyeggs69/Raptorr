@@ -31,15 +31,8 @@ struct PlayerOverlay: View {
             )
 
             if viewModel.item.kind == .episode {
-                HStack(spacing: 8) {
-                    if let label = viewModel.item.shortEpisodeLabel {
-                        Text(label)
-                            .foregroundStyle(.secondary)
-                    }
-                    Text(viewModel.item.title)
-                }
-                .font(.caption)
-                .lineLimit(1)
+                EpisodeTitleLine(episode: viewModel.item)
+                    .font(.caption)
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)

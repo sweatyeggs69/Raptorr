@@ -22,7 +22,8 @@ struct FocusedItemHeader: View {
             // Movies have no episode title, so the line is left out. The whole header
             // crossfades between items, so the logo moving with it doesn't show.
             if item.kind == .episode {
-                episodeTitle(item.title)
+                EpisodeTitleLine(episode: item)
+                    .font(.title3.bold())
             }
 
             // The placeholder keeps the line's height when an item has no metadata.
@@ -41,11 +42,6 @@ struct FocusedItemHeader: View {
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
-    private func episodeTitle(_ title: String) -> some View {
-        Text(title)
-            .font(.title3.bold())
-            .lineLimit(1)
-    }
 }
 
 #Preview {
