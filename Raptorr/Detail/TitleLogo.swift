@@ -6,7 +6,7 @@ struct TitleLogo: View {
     let title: String
     let logoPath: String?
     var maxWidth: CGFloat = TitleLogo.widthLimit
-    var maxHeight: CGFloat = 220
+    var maxHeight: CGFloat = TitleLogo.defaultHeight
     var font: Font = .largeTitle.bold()
     /// Leaves the box empty while the caller is still finding out whether a logo exists.
     var isLoading = false
@@ -16,7 +16,9 @@ struct TitleLogo: View {
 
     /// Logos fill their box's height unless that would make them wider than this: 40% of the
     /// 1920pt tvOS screen (Kyle's call).
-    static let widthLimit: CGFloat = 768
+    nonisolated static let widthLimit: CGFloat = 768
+    /// The detail pages' logo box height.
+    nonisolated static let defaultHeight: CGFloat = 220
 
     @Environment(\.plexClient) private var client
     @Environment(\.plexServer) private var server

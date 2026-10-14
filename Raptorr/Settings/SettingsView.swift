@@ -4,6 +4,8 @@ struct SettingsView: View {
     @Environment(AuthStore.self) private var authStore
     @Environment(ServerConnectionManager.self) private var connection
     @Environment(\.plexClient) private var client
+    @Environment(TabRouter.self) private var router
+    @FocusState private var focusedRow: String?
     @State private var isConfirmingSignOut = false
     @AppStorage(InterfaceSettings.showsTabIconsKey) private var showsTabIcons = InterfaceSettings.showsTabIconsDefault
 
@@ -20,6 +22,7 @@ struct SettingsView: View {
                 List {
                     Section("Interface") {
                         Toggle("Tab Bar Icons", isOn: $showsTabIcons)
+                            .focused($focusedRow, equals: "tabBarIcons")
                     }
 
                     Section("About") {
@@ -40,12 +43,18 @@ struct SettingsView: View {
                             connection.disconnect()
                             Task { await client.clearCache() }
                         }
+                        .focused($focusedRow, equals: "switchServer")
                         Button("Sign Out", role: .destructive) {
                             isConfirmingSignOut = true
                         }
+                        .focused($focusedRow, equals: "signOut")
                     }
                 }
                 .frame(maxWidth: .infinity)
+            }
+            // Back from the list moves focus up to the tab bar, as in the libraries.
+            .onChange(of: focusedRow) { _, row in
+                router.isContentFocused = row != nil
             }
             .alert("Sign Out of Plex?", isPresented: $isConfirmingSignOut) {
                 Button("Sign Out", role: .destructive) {
@@ -70,6 +79,7 @@ struct SettingsView: View {
                     .truncationMode(.middle)
             }
         }
+        .focused($focusedRow, equals: title)
     }
 
     private func connectionDescription(for server: PlexServer) -> String {
@@ -82,4 +92,5 @@ struct SettingsView: View {
     SettingsView()
         .environment(AuthStore())
         .environment(ServerConnectionManager())
+        .environment(TabRouter())
 }
