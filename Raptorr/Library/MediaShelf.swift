@@ -22,9 +22,9 @@ struct MediaShelf: View {
                     ForEach(items) { item in
                         switch style {
                         case .poster:
-                            PosterCard(item: item, width: 200, onFocus: focusAction(for: item), focus: $focusedID)
+                            PosterCard(item: item, width: style.cardWidth, onFocus: focusAction(for: item), focus: $focusedID)
                         case .landscape:
-                            LandscapeCard(item: item, onFocus: focusAction(for: item), focus: $focusedID)
+                            LandscapeCard(item: item, width: style.cardWidth, onFocus: focusAction(for: item), focus: $focusedID)
                         }
                     }
                 }
