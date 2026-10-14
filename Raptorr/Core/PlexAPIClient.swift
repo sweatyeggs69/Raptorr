@@ -101,6 +101,10 @@ nonisolated final class PlexAPIClient: Sendable {
     }
 
     /// How many titles in a library start with each character, in title-sort order.
+    ///
+    /// Reads the path from the title sort's `firstCharacterKey` in
+    /// `/library/sections/{sectionId}/sorts`, since servers answer there (`/firstCharacter`);
+    /// `/library/sections/{sectionId}/firstCharacters` is the fallback when no key is given.
     func firstCharacters(
         server: PlexServer,
         section: LibrarySection,
@@ -110,12 +114,14 @@ nonisolated final class PlexAPIClient: Sendable {
         if let type = section.type.metadataTypeNumber {
             query.append(URLQueryItem(name: "type", value: "\(type)"))
         }
-        return try await container(
+        let sorts = try await container(
             server: server,
-            path: "/library/sections/\(section.key)/firstCharacters",
-            query: query,
+            path: "/library/sections/\(section.key)/sorts",
             source: source
-        ).firstCharacters ?? []
+        ).sorts ?? []
+        let path = sorts.first { $0.key == "titleSort" }?.firstCharacterKey
+            ?? "/library/sections/\(section.key)/firstCharacters"
+        return try await container(server: server, path: path, query: query, source: source).firstCharacters ?? []
     }
 
     // MARK: - Hubs

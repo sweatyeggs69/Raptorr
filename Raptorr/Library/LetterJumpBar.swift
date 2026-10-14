@@ -6,6 +6,9 @@ struct LetterJumpBar: View {
     let letters: [LetterJump]
     let action: (LetterJump) -> Void
 
+    /// The bar's width, which the grid leaves free beside it.
+    static let width: CGFloat = 60
+
     var body: some View {
         // Sized to its letters (no scroll view, which would stretch and squeeze them into
         // ellipses) on a glass capsule so it reads as a control even before it has focus.
@@ -18,7 +21,7 @@ struct LetterJumpBar: View {
                         .font(.caption.weight(.bold))
                         .lineLimit(1)
                         .fixedSize()
-                        .frame(width: 44, height: 28)
+                        .frame(width: Self.width - 16, height: 26)
                 }
                 .buttonStyle(.borderless)
             }
@@ -26,7 +29,7 @@ struct LetterJumpBar: View {
         .padding(.vertical, 16)
         .padding(.horizontal, 8)
         .glassEffect(.regular, in: .capsule)
-        .fixedSize()
+        .frame(width: Self.width)
         .focusSection()
     }
 }

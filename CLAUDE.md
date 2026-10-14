@@ -20,7 +20,7 @@ Use Apple's TV app on tvOS as the reference for layout and behavior.
 - Show pages switch seasons with a segmented picker (a menu past 8 seasons) and list episodes vertically: 16:9 still on the left, episode number, name and description on the right.
 - Movie, episode and show pages end with a Cast row (the item's `Role` tags) and, for movies and shows, a Related row from `/library/metadata/{ids}/similar`.
 - Subtitles follow the TV app's menu: Off, Auto (forced subtitles only, matching the audio language), or a specific track.
-- Library grids have a letter column on a glass capsule at the right edge (`LetterJumpBar`) built from `/library/sections/{sectionId}/firstCharacters`; selecting a letter loads through that title, scrolls to it and focuses it.
+- Library grids overlay a letter column on a glass capsule at the right edge (`LetterJumpBar`). Counts come from the title sort's `firstCharacterKey` in `/library/sections/{sectionId}/sorts` (servers 404 on `/firstCharacters`); if that fails, the letters are read off every title's `titleSort`. Selecting a letter loads through that title, scrolls to it and focuses it.
 - Settings and the server picker follow the system Settings app: a large symbol on the left half and a grouped `List` on the right. Info rows are no-op buttons so the focus engine can reach them.
 
 ## STRICT RULE: Always Use Stock Apple First
