@@ -9,6 +9,7 @@ struct LibraryView: View {
     @State private var viewModel = LibraryViewModel()
     @State private var path = NavigationPath()
     @FocusState private var focusedID: String?
+    @State private var jumpTask: Task<Void, Never>?
     @Environment(TabRouter.self) private var router
 
     private let columns = [GridItem(.adaptive(minimum: 250), spacing: 48, alignment: .top)]
@@ -59,14 +60,16 @@ struct LibraryView: View {
                     }
                     .padding(.vertical, 40)
                     // Room for the letter bar, so the last column isn't under it.
-                    .padding(.trailing, viewModel.letters.count > 1 ? LetterJumpBar.width + 40 : 0)
+                    .padding(.trailing, viewModel.letters.count > 1 ? LetterJumpBar.width + 16 : 0)
                 }
                 .scrollClipDisabled()
                 // An overlay rather than a sibling, so the bar never changes the grid's size.
                 .overlay(alignment: .trailing) {
                     if viewModel.letters.count > 1 {
                         LetterJumpBar(letters: viewModel.letters) { letter in
-                            Task { await jump(to: letter, proxy: proxy) }
+                            jump(to: letter, proxy: proxy, focusTitle: false)
+                        } onSelect: { letter in
+                            jump(to: letter, proxy: proxy, focusTitle: true)
                         }
                     }
                 }
@@ -74,13 +77,19 @@ struct LibraryView: View {
         }
     }
 
-    /// Scrolls to the letter's first title and moves focus onto it.
-    private func jump(to letter: LetterJump, proxy: ScrollViewProxy) async {
-        guard let id = await viewModel.jump(to: letter, section: section, server: server, client: client) else { return }
-        proxy.scrollTo(id, anchor: .top)
-        // The lazy grid builds the card after the scroll; focus it once it exists.
-        try? await Task.sleep(for: .milliseconds(100))
-        focusedID = id
+    /// Scrolls to the letter's first title; on select, also moves focus onto it. A newer
+    /// jump replaces one still loading, so sweeping through the letters lands on the last.
+    private func jump(to letter: LetterJump, proxy: ScrollViewProxy, focusTitle: Bool) {
+        jumpTask?.cancel()
+        jumpTask = Task {
+            guard let id = await viewModel.jump(to: letter, section: section, server: server, client: client),
+                  !Task.isCancelled else { return }
+            withAnimation { proxy.scrollTo(id, anchor: .top) }
+            guard focusTitle else { return }
+            // The lazy grid builds the card after the scroll; focus it once it exists.
+            try? await Task.sleep(for: .milliseconds(100))
+            focusedID = id
+        }
     }
 }
 

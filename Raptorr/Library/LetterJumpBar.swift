@@ -1,41 +1,45 @@
 import SwiftUI
 
-/// A column of letters beside a library grid; selecting one jumps to the first title
-/// starting with it.
+/// A column of letters over the right edge of a library grid. Moving through it scrolls the
+/// grid to each letter; selecting one moves focus onto that letter's first title.
 struct LetterJumpBar: View {
     let letters: [LetterJump]
-    let action: (LetterJump) -> Void
+    let onFocus: (LetterJump) -> Void
+    let onSelect: (LetterJump) -> Void
 
     /// The bar's width, which the grid leaves free beside it.
-    static let width: CGFloat = 60
+    static let width: CGFloat = 44
+
+    @FocusState private var focusedLetter: String?
 
     var body: some View {
-        // Sized to its letters (no scroll view, which would stretch and squeeze them into
-        // ellipses) on a glass capsule so it reads as a control even before it has focus.
         VStack(spacing: 0) {
             ForEach(letters) { letter in
                 Button {
-                    action(letter)
+                    onSelect(letter)
                 } label: {
-                    Text(letter.title)
-                        .font(.caption.weight(.bold))
-                        .lineLimit(1)
-                        .fixedSize()
-                        .frame(width: Self.width - 16, height: 26)
+                    LetterJumpLabel(title: letter.title)
                 }
-                .buttonStyle(.borderless)
+                .buttonStyle(.focusBorder)
+                .focused($focusedLetter, equals: letter.id)
             }
         }
-        .padding(.vertical, 16)
-        .padding(.horizontal, 8)
-        .glassEffect(.regular, in: .capsule)
+        // Scroll only when moving between letters, not when focus first enters the bar.
+        .onChange(of: focusedLetter) { previous, current in
+            guard previous != nil, let current, let letter = letters.first(where: { $0.id == current }) else { return }
+            onFocus(letter)
+        }
+        .padding(.vertical, 10)
         .frame(width: Self.width)
+        .glassEffect(.regular, in: .capsule)
         .focusSection()
     }
 }
 
 #Preview {
     LetterJumpBar(
-        letters: ["#", "A", "B", "C", "G", "M", "S", "Z"].enumerated().map { LetterJump(title: $1, offset: $0) }
-    ) { _ in }
+        letters: ["#", "A", "B", "C", "G", "M", "S", "Z"].enumerated().map { LetterJump(title: $1, offset: $0) },
+        onFocus: { _ in },
+        onSelect: { _ in }
+    )
 }
