@@ -52,7 +52,9 @@ struct HomeView: View {
                         isLoadingLogo: viewModel.isLoadingLogo,
                         isContinueWatching: viewModel.activeRowID == HomeViewModel.continueWatchingRowID
                     )
-                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomLeading)
+                    // Keeps clear of the tab bar; the logo shrinks rather than crossing it.
+                    .padding(.top, 40)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomLeading)
                 } else {
                     Spacer()
                 }

@@ -5,22 +5,23 @@ struct FocusedItemHeader: View {
     let item: PlexMetadata
     let logoPath: String?
     var isLoadingLogo = false
-    /// Continue Watching cards drop the metadata line and show S#E# after the episode title.
+    /// Continue Watching cards show S#E# after the episode title rather than in the metadata line.
     var isContinueWatching = false
 
     var body: some View {
-        // Every slot has a fixed size (the logo box, one line each for the episode title and
-        // metadata, three lines of description), so moving between items never shifts anything.
-        // Continue Watching leaves out the metadata line; the header is bottom aligned, so only
-        // the logo moves, and only when switching to or from that row.
+        // Every text slot has a fixed size (one line each for the episode title and metadata,
+        // three lines of description). The logo box takes what room is left, up to its full
+        // size, so the header never runs up into the tab bar on a short screen.
         VStack(alignment: .leading, spacing: 16) {
             TitleLogo(
                 title: item.kind == .episode ? (item.grandparentTitle ?? item.title) : item.title,
                 logoPath: logoPath,
                 maxWidth: 640,
                 maxHeight: 180,
-                isLoading: isLoadingLogo
+                isLoading: isLoadingLogo,
+                minHeight: 60
             )
+            .layoutPriority(-1)
 
             HStack(alignment: .firstTextBaseline, spacing: 16) {
                 Text(item.kind == .episode ? item.title : " ")
@@ -32,19 +33,24 @@ struct FocusedItemHeader: View {
                         .foregroundStyle(.secondary)
                 }
             }
+            .fixedSize(horizontal: false, vertical: true)
 
-            if !isContinueWatching {
-                Text(item.infoLine.isEmpty ? " " : item.infoLine)
-                    .font(.headline)
-                    .foregroundStyle(.secondary)
-                    .lineLimit(1)
-            }
+            Text(metadataLine.isEmpty ? " " : metadataLine)
+                .font(.headline)
+                .foregroundStyle(.secondary)
+                .lineLimit(1)
+                .fixedSize(horizontal: false, vertical: true)
 
             Text(item.summary ?? "")
                 .lineLimit(3, reservesSpace: true)
                 .frame(width: 1000, alignment: .topLeading)
+                .fixedSize(horizontal: false, vertical: true)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private var metadataLine: String {
+        isContinueWatching && item.shortEpisodeLabel != nil ? item.detailsLine : item.infoLine
     }
 }
 
