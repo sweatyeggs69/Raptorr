@@ -37,6 +37,9 @@ nonisolated struct PlexMetadata: Decodable, Sendable, Hashable, Identifiable {
     let director: [PlexTag]?
     let role: [PlexTag]?
     let image: [PlexImage]?
+    /// When the server last changed the item (Unix seconds), used to skip unchanged titles
+    /// in the background sync.
+    let updatedAt: Int?
 
     var id: String { ratingKey }
 
@@ -45,7 +48,7 @@ nonisolated struct PlexMetadata: Decodable, Sendable, Hashable, Identifiable {
         case duration, viewOffset, viewCount, leafCount, viewedLeafCount
         case thumb, art, parentThumb, grandparentThumb, grandparentArt
         case parentTitle, grandparentTitle, parentRatingKey, grandparentRatingKey
-        case contentRating, studio, audienceRating, originallyAvailableAt, skipChildren
+        case contentRating, studio, audienceRating, originallyAvailableAt, skipChildren, updatedAt
         case media = "Media"
         case genre = "Genre"
         case director = "Director"
@@ -87,7 +90,8 @@ nonisolated struct PlexMetadata: Decodable, Sendable, Hashable, Identifiable {
         director: [PlexTag]? = nil,
         role: [PlexTag]? = nil,
         image: [PlexImage]? = nil,
-        titleSort: String? = nil
+        titleSort: String? = nil,
+        updatedAt: Int? = nil
     ) {
         self.ratingKey = ratingKey
         self.key = key
@@ -123,6 +127,7 @@ nonisolated struct PlexMetadata: Decodable, Sendable, Hashable, Identifiable {
         self.director = director
         self.role = role
         self.image = image
+        self.updatedAt = updatedAt
     }
 }
 

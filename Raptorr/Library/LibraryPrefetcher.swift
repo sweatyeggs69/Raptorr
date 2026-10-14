@@ -45,30 +45,49 @@ nonisolated struct LibraryPrefetcher: Sendable {
         guard force || Self.isDue(for: server) else { return false }
         for section in sections {
             guard !Task.isCancelled else { return false }
+            // The title list is always fetched: it's how new and changed titles are found.
             let items = await allItems(in: section, server: server)
             var images = ImageList()
-            for start in stride(from: 0, to: items.count, by: Self.metadataBatchSize) {
+
+            // Only titles that are new or changed since they were cached get fetched again.
+            var cached: [String: PlexMetadata] = [:]
+            var stale: [PlexMetadata] = []
+            for item in items {
+                if let full = try? await client.metadata(server: server, ratingKey: item.ratingKey, from: .cache),
+                   Self.isCurrent(full, comparedWith: item) {
+                    cached[item.ratingKey] = full
+                } else {
+                    stale.append(item)
+                }
+            }
+            for start in stride(from: 0, to: stale.count, by: Self.metadataBatchSize) {
                 guard !Task.isCancelled else { return false }
-                let batch = items[start..<min(start + Self.metadataBatchSize, items.count)]
+                let batch = stale[start..<min(start + Self.metadataBatchSize, stale.count)]
                 try? await client.cacheMetadata(server: server, ratingKeys: batch.map(\.ratingKey))
-                // Cast photos at the size the Cast row asks for, from the metadata just cached.
                 for item in batch {
-                    guard let full = try? await client.metadata(server: server, ratingKey: item.ratingKey, from: .cache) else { continue }
-                    for person in full.role ?? [] {
-                        images.add(client.artworkURL(
-                            server: server,
-                            path: person.thumb,
-                            width: Int(CastCard.portraitSize * 2),
-                            height: Int(CastCard.portraitSize * 2)
-                        ))
-                    }
+                    cached[item.ratingKey] = try? await client.metadata(server: server, ratingKey: item.ratingKey, from: .cache)
+                }
+            }
+            let staleKeys = Set(stale.map(\.ratingKey))
+
+            // Cast photos at the size the Cast row asks for. Images already on disk are
+            // skipped by the prefetch, and changed artwork has a new URL.
+            for item in items {
+                for person in cached[item.ratingKey]?.role ?? [] {
+                    images.add(client.artworkURL(
+                        server: server,
+                        path: person.thumb,
+                        width: Int(CastCard.portraitSize * 2),
+                        height: Int(CastCard.portraitSize * 2)
+                    ))
                 }
             }
             if section.type == .show {
                 for show in items {
                     guard !Task.isCancelled else { return false }
                     // Stills of the episodes the show page opens on, at `EpisodeRow`'s size.
-                    for episode in await cacheSeasons(of: show, server: server) {
+                    let episodes = await cacheSeasons(of: show, server: server, refresh: staleKeys.contains(show.ratingKey))
+                    for episode in episodes {
                         images.add(client.artworkURL(
                             server: server,
                             path: episode.thumb,
@@ -143,12 +162,25 @@ nonisolated struct LibraryPrefetcher: Sendable {
         return items
     }
 
+    /// Whether the cached metadata is as new as the item in the fresh title list. Without
+    /// `updatedAt` on either side it counts as changed. Shows also compare their episode
+    /// count, which goes up when episodes are added.
+    static func isCurrent(_ cached: PlexMetadata, comparedWith fresh: PlexMetadata) -> Bool {
+        guard let cachedDate = cached.updatedAt, let freshDate = fresh.updatedAt else { return false }
+        return cachedDate == freshDate && cached.leafCount == fresh.leafCount
+    }
+
     /// Seasons, then the episodes of the season `ShowDetailViewModel` opens on first, which
-    /// it returns.
-    private func cacheSeasons(of show: PlexMetadata, server: PlexServer) async -> [PlexMetadata] {
-        guard let seasons = try? await client.children(server: server, ratingKey: show.ratingKey),
+    /// it returns. An unchanged show reuses what's cached and only asks the server for
+    /// anything missing.
+    private func cacheSeasons(of show: PlexMetadata, server: PlexServer, refresh: Bool) async -> [PlexMetadata] {
+        let seasons = refresh ? nil : try? await client.children(server: server, ratingKey: show.ratingKey, from: .cache)
+        guard let seasons = seasons ?? (try? await client.children(server: server, ratingKey: show.ratingKey)),
               let opening = seasons.first(where: { !$0.isWatched && ($0.index ?? 0) > 0 }) ?? seasons.first else {
             return []
+        }
+        if !refresh, let episodes = try? await client.children(server: server, ratingKey: opening.ratingKey, from: .cache) {
+            return episodes
         }
         return (try? await client.children(server: server, ratingKey: opening.ratingKey)) ?? []
     }
