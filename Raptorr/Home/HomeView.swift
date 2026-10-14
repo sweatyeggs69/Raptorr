@@ -9,9 +9,15 @@ struct HomeView: View {
     @Environment(\.plexServer) private var server
     @Environment(TabRouter.self) private var router
     @Environment(BackgroundActivity.self) private var activity
+    @Environment(PlaybackCoordinator.self) private var playback
     @State private var viewModel = HomeViewModel()
     @State private var path = NavigationPath()
     @State private var snapTask: Task<Void, Never>?
+    /// Rows that hold focus right now; empty once focus moves up to the tab bar.
+    @State private var focusedRowIDs: Set<String> = []
+    @State private var leaveTask: Task<Void, Never>?
+    /// Bumped when focus leaves Home's rows, so coming back lands on the first card.
+    @State private var focusResets = 0
 
     var body: some View {
         NavigationStack(path: $path) {
@@ -89,7 +95,10 @@ struct HomeView: View {
                                         focus(item, inRow: row.id)
                                         snap(to: row.id, proxy: proxy)
                                     },
-                                    resetID: router.homeReturns
+                                    resetID: router.homeReturns + focusResets,
+                                    onFocusChange: { isFocused in
+                                        rowFocusChanged(row.id, isFocused: isFocused, proxy: proxy)
+                                    }
                                 )
                                 // Room below the cards for the focus lift, so the focus engine
                                 // has no reason to scroll.
@@ -158,6 +167,27 @@ struct HomeView: View {
         }
     }
 
+    /// Focus leaving every row for the tab bar resets Home to its first row and first card,
+    /// so moving back down always starts there. A row losing focus to the next row, a pushed
+    /// page or the player doesn't count.
+    private func rowFocusChanged(_ rowID: String, isFocused: Bool, proxy: ScrollViewProxy) {
+        if isFocused {
+            focusedRowIDs.insert(rowID)
+        } else {
+            focusedRowIDs.remove(rowID)
+        }
+        leaveTask?.cancel()
+        guard focusedRowIDs.isEmpty else { return }
+        leaveTask = Task {
+            try? await Task.sleep(for: .milliseconds(100))
+            guard !Task.isCancelled, focusedRowIDs.isEmpty, path.isEmpty, playback.request == nil,
+                  let row = viewModel.rows.first, let item = row.items.first else { return }
+            focusResets += 1
+            focus(item, inRow: row.id)
+            proxy.scrollTo(row.id, anchor: .bottom)
+        }
+    }
+
     private func focus(_ item: PlexMetadata, inRow rowID: String) {
         viewModel.focus(item, inRow: rowID, server: server, client: client)
     }
@@ -166,5 +196,6 @@ struct HomeView: View {
 #Preview {
     HomeView(sections: [])
         .environment(TabRouter())
+        .environment(PlaybackCoordinator())
         .environment(BackgroundActivity())
 }

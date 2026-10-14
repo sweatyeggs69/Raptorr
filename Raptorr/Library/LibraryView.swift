@@ -11,6 +11,9 @@ struct LibraryView: View {
     @FocusState private var focusedID: String?
     @State private var jumpTask: Task<Void, Never>?
     @State private var isLetterBarFocused = false
+    /// Set while focus is up on the tab bar: the next focus in the grid goes to the first poster.
+    @State private var startsAtFirst = true
+    @State private var scrollToTopRequests = 0
     @Environment(TabRouter.self) private var router
     @Environment(BackgroundActivity.self) private var activity
 
@@ -33,6 +36,21 @@ struct LibraryView: View {
         .onChange(of: focusedID != nil || isLetterBarFocused || !path.isEmpty) { _, isFocused in
             guard router.selection == .library(key: section.key) else { return }
             router.isContentFocused = isFocused
+            if !isFocused {
+                startsAtFirst = true
+                scrollToTopRequests += 1
+            }
+        }
+        // Coming down from the tab bar always lands on the first poster.
+        .onChange(of: focusedID) { previous, id in
+            guard previous == nil, let id, startsAtFirst else { return }
+            startsAtFirst = false
+            if let first = viewModel.items.first?.id, id != first {
+                focusedID = first
+            }
+        }
+        .onChange(of: isLetterBarFocused) { _, isFocused in
+            if isFocused { startsAtFirst = false }
         }
         // Reloads when the connection moves between local, remote and relay.
         // While the library is on screen: the whole library and every poster, so nothing waits
@@ -82,6 +100,11 @@ struct LibraryView: View {
                     .padding(.trailing, viewModel.letters.count > 1 ? LetterJumpBar.width + 16 : 0)
                 }
                 .scrollClipDisabled()
+                .onChange(of: scrollToTopRequests) {
+                    if let first = viewModel.items.first?.id {
+                        proxy.scrollTo(first, anchor: .top)
+                    }
+                }
                 // An overlay rather than a sibling, so the bar never changes the grid's size.
                 .overlay(alignment: .trailing) {
                     if viewModel.letters.count > 1 {

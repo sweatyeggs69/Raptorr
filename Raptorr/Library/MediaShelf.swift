@@ -9,6 +9,8 @@ struct MediaShelf: View {
     var onFocus: ((PlexMetadata) -> Void)?
     /// Changing this forgets the last focused card, so focus next lands on the first one.
     var resetID = 0
+    /// Called when focus enters (true) or leaves (false) the row.
+    var onFocusChange: ((Bool) -> Void)?
 
     @FocusState private var focusedID: String?
     /// The card that last had focus, so coming back to the row returns to it.
@@ -35,6 +37,7 @@ struct MediaShelf: View {
         }
         .fullWidthFocusSection()
         .onChange(of: focusedID) { previous, id in
+            if (previous == nil) != (id == nil) { onFocusChange?(id != nil) }
             guard let id else { return }
             // Focus coming in from another row lands on whichever card sits under the old
             // one; send it to the card last focused here, or the first, like the TV app.
