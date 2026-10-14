@@ -49,10 +49,8 @@ final class PlayerViewModel {
         videoView.backgroundColor = .black
         player.drawable = videoView
         #if DEBUG
-        // VLC's own messages (demuxer, network access), to see where a slow seek waits.
-        let logger = VLCConsoleLogger()
-        logger.level = .info
-        VLCLibrary.shared().loggers = [logger]
+        // VLC's own messages about seeking (demuxer index, network access).
+        VLCLibrary.shared().loggers = [VLCDiagnosticLogger()]
         #endif
     }
 
@@ -307,7 +305,7 @@ final class PlayerViewModel {
             hasSentResumeSeek = true
             player.time = VLCTime(number: NSNumber(value: target))
             #if DEBUG
-            print("[Player] resume seek to \(target)ms sent at \(time)ms (video out: \(player.hasVideoOut))")
+            print("[Player] resume seek to \(target)ms sent at \(time)ms (video out: \(player.hasVideoOut)) \(Date.now.formatted(date: .omitted, time: .standard))")
             #endif
             return
         }
@@ -321,6 +319,9 @@ final class PlayerViewModel {
         print("[Player] resume: time=\(time)ms target=\(target)ms landed=\(resumeLandedAtMs.map(String.init) ?? "no")")
         #endif
         if isMoving || isPastDeadline {
+            #if DEBUG
+            print("[Player] resume shown (moving: \(isMoving)) \(Date.now.formatted(date: .omitted, time: .standard))")
+            #endif
             pendingResumeMs = nil
             videoView.isHidden = false
             player.audio?.isMuted = false
