@@ -5,7 +5,14 @@ import TVServices
 /// from the snapshot the app saves. With no snapshot (signed out, or the app hasn't loaded
 /// Home yet) it returns nothing and the system shows the static Top Shelf image.
 final class ContentProvider: TVTopShelfContentProvider {
-    override func loadTopShelfContent() async -> (any TVTopShelfContent)? {
+    // The documented completion-handler entry point, rather than its async import, so nothing
+    // depends on how Swift bridges the async override back to Objective-C.
+    override func loadTopShelfContent(completionHandler: @escaping ((any TVTopShelfContent)?) -> Void) {
+        completionHandler(Self.content())
+    }
+
+    private static func content() -> (any TVTopShelfContent)? {
+        TopShelfStore.log("extension: loading")
         guard TopShelfStore.directory != nil else {
             TopShelfStore.log("extension: no App Group container; check the App Groups capability on RaptorrTopShelf")
             return nil
