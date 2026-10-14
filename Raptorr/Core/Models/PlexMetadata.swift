@@ -157,8 +157,12 @@ extension PlexMetadata {
 
     /// "S1 · E3 · 2024 · TV-14 · 45m · 4K" style summary line.
     var infoLine: String {
+        ([episodeLabel].compactMap { $0 } + [detailsLine].filter { !$0.isEmpty }).joined(separator: " · ")
+    }
+
+    /// `infoLine` without the season and episode, for places that show S#E# separately.
+    var detailsLine: String {
         var parts: [String] = []
-        if let label = episodeLabel { parts.append(label) }
         if let year { parts.append(String(year)) }
         if let contentRating { parts.append(contentRating) }
         if let durationText { parts.append(durationText) }

@@ -15,6 +15,8 @@ struct PlexMetadataTests {
 
         #expect(episode.episodeLabel == "S2 · E3")
         #expect(episode.shortEpisodeLabel == "S2E3")
+        #expect(episode.infoLine == "S2 · E3")
+        #expect(episode.detailsLine.isEmpty)
         #expect(episode.posterPath == "/show-poster")
     }
 
