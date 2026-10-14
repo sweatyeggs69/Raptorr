@@ -46,7 +46,12 @@ struct HomeView: View {
             // directly above it, so a missing logo or a short description never moves the row.
             VStack(alignment: .leading, spacing: 40) {
                 if let item = viewModel.focusedItem {
-                    FocusedItemHeader(item: item, logoPath: viewModel.focusedLogoPath, isLoadingLogo: viewModel.isLoadingLogo)
+                    FocusedItemHeader(
+                        item: item,
+                        logoPath: viewModel.focusedLogoPath,
+                        isLoadingLogo: viewModel.isLoadingLogo,
+                        isContinueWatching: viewModel.activeRowID == HomeViewModel.continueWatchingRowID
+                    )
                         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomLeading)
                 } else {
                     Spacer()
