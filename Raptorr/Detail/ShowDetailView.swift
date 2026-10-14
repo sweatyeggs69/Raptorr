@@ -63,6 +63,15 @@ struct ShowDetailView: View {
         .task {
             await viewModel.load(server: server, client: client)
         }
+        // Coming back from the player: refresh progress and Up Next. The player's final
+        // timeline report is still in flight then, so wait briefly first.
+        .onChange(of: playback.request == nil) { _, closed in
+            guard closed else { return }
+            Task {
+                try? await Task.sleep(for: .seconds(1))
+                await viewModel.load(server: server, client: client)
+            }
+        }
     }
 
     /// Seasons as a segmented control, like the Apple TV app; moving focus across it switches

@@ -36,8 +36,10 @@ struct ItemDetailView: View {
                         Button(resumeText, systemImage: "play.fill") {
                             playback.play(item, resume: true)
                         }
-                        Button("Play from Beginning", systemImage: "arrow.counterclockwise") {
+                        Button {
                             playback.play(item, resume: false)
+                        } label: {
+                            FocusExpandingLabel(title: "Play from Beginning", systemImage: "arrow.counterclockwise")
                         }
                     } else {
                         Button("Play", systemImage: "play.fill") {
@@ -48,11 +50,10 @@ struct ItemDetailView: View {
                     Button {
                         Task { await viewModel.toggleWatched(server: server, client: client) }
                     } label: {
-                        Label(
-                            item.isWatched ? "Mark Unwatched" : "Mark Watched",
+                        FocusExpandingLabel(
+                            title: item.isWatched ? "Mark Unwatched" : "Mark Watched",
                             systemImage: item.isWatched ? "checkmark.circle.fill" : "checkmark.circle"
                         )
-                        .contentTransition(.symbolEffect(.replace))
                     }
 
                     if let duration = item.durationText {
@@ -91,6 +92,11 @@ struct ItemDetailView: View {
         }
         .task {
             await viewModel.load(server: server, client: client)
+        }
+        // Coming back from the player: pick up the new resume point and watched state.
+        .onChange(of: playback.request == nil) { _, closed in
+            guard closed else { return }
+            Task { await viewModel.refreshAfterPlayback(server: server, client: client) }
         }
     }
 }

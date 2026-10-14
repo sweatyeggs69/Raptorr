@@ -39,6 +39,15 @@ final class ItemDetailViewModel {
         }
     }
 
+    /// Re-reads the item after the player closes. The player's final timeline report is
+    /// still in flight then, so this waits briefly first.
+    func refreshAfterPlayback(server: PlexServer, client: PlexAPIClient) async {
+        try? await Task.sleep(for: .seconds(1))
+        if let full = try? await client.metadata(server: server, ratingKey: item.ratingKey) {
+            item = full
+        }
+    }
+
     func toggleWatched(server: PlexServer, client: PlexAPIClient) async {
         if item.isWatched {
             await client.unscrobble(server: server, ratingKey: item.ratingKey)
