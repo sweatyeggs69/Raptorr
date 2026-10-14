@@ -7,6 +7,7 @@ nonisolated enum PlexAPIError: Error, LocalizedError {
     case networkError(any Error)
     case decodingError(any Error, path: String)
     case noPlayableMedia
+    case notCached
 
     var errorDescription: String? {
         switch self {
@@ -16,6 +17,7 @@ nonisolated enum PlexAPIError: Error, LocalizedError {
         case .networkError(let error): error.localizedDescription
         case .decodingError(_, let path): "The server sent an unexpected response for \(path)."
         case .noPlayableMedia: "This item has no playable media."
+        case .notCached: "Not available offline yet."
         }
     }
 }

@@ -6,12 +6,14 @@ nonisolated struct MediaContainer: Decodable, Sendable {
     let offset: Int?
     let title1: String?
     let title2: String?
+    /// Set on `/identity` responses.
+    let machineIdentifier: String?
     let metadata: [PlexMetadata]?
     let directory: [LibrarySection]?
     let hub: [Hub]?
 
     enum CodingKeys: String, CodingKey {
-        case size, totalSize, offset, title1, title2
+        case size, totalSize, offset, title1, title2, machineIdentifier
         case metadata = "Metadata"
         case directory = "Directory"
         case hub = "Hub"

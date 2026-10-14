@@ -17,8 +17,9 @@ struct LibraryView: View {
                 .navigationTitle(section.title)
                 .metadataDestinations()
         }
-        .task(id: section.key) {
-            await viewModel.reload(section: section, server: server, client: client)
+        // Reloads when the connection moves between local, remote and relay.
+        .task(id: server.uri) {
+            await viewModel.load(section: section, server: server, client: client)
         }
     }
 
@@ -33,7 +34,7 @@ struct LibraryView: View {
                 Text(errorMessage)
             } actions: {
                 Button("Try Again") {
-                    Task { await viewModel.reload(section: section, server: server, client: client) }
+                    Task { await viewModel.load(section: section, server: server, client: client) }
                 }
             }
         } else if viewModel.items.isEmpty {

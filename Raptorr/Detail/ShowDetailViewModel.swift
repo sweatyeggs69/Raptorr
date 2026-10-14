@@ -23,27 +23,13 @@ final class ShowDetailViewModel {
         episodes.first { $0.progress != nil } ?? episodes.first { !$0.isWatched } ?? episodes.first
     }
 
+    /// Shows the cached show, seasons and episodes right away, then the server's.
     func load(server: PlexServer, client: PlexAPIClient) async {
-        let showKey = initialItem.kind == .season ? (initialItem.parentRatingKey ?? initialItem.ratingKey) : initialItem.ratingKey
+        if show == nil {
+            try? await loadShow(server: server, client: client, from: .cache)
+        }
         do {
-            let show = try await client.metadata(server: server, ratingKey: showKey)
-            self.show = show
-
-            if show?.skipChildren == true {
-                // Shows without a season level list their episodes directly.
-                seasons = []
-                episodes = try await client.grandchildren(server: server, ratingKey: showKey)
-                return
-            }
-
-            seasons = try await client.children(server: server, ratingKey: showKey)
-            let initialKey = initialItem.ratingKey
-            let preferred = initialItem.kind == .season
-                ? seasons.first(where: { $0.ratingKey == initialKey })
-                : seasons.first(where: { !$0.isWatched && ($0.index ?? 0) > 0 })
-            if let season = preferred ?? seasons.first {
-                await select(season: season, server: server, client: client)
-            }
+            try await loadShow(server: server, client: client, from: .network)
             errorMessage = nil
         } catch {
             errorMessage = error.localizedDescription
@@ -54,14 +40,47 @@ final class ShowDetailViewModel {
         selectedSeason = season
         isLoadingEpisodes = true
         defer { isLoadingEpisodes = false }
+        try? await loadEpisodes(of: season, server: server, client: client, from: .cache)
         do {
-            let loaded = try await client.children(server: server, ratingKey: season.ratingKey)
-            // Ignore a stale response if the user already picked another season.
-            guard selectedSeason?.ratingKey == season.ratingKey else { return }
-            episodes = loaded
+            try await loadEpisodes(of: season, server: server, client: client, from: .network)
         } catch {
             errorMessage = error.localizedDescription
         }
+    }
+
+    private func loadShow(server: PlexServer, client: PlexAPIClient, from source: DataSource) async throws {
+        let showKey = initialItem.kind == .season ? (initialItem.parentRatingKey ?? initialItem.ratingKey) : initialItem.ratingKey
+        let show = try await client.metadata(server: server, ratingKey: showKey, from: source)
+        self.show = show
+
+        if show?.skipChildren == true {
+            // Shows without a season level list their episodes directly.
+            seasons = []
+            let loaded = try await client.grandchildren(server: server, ratingKey: showKey, from: source)
+            if loaded != episodes { episodes = loaded }
+            return
+        }
+
+        let loadedSeasons = try await client.children(server: server, ratingKey: showKey, from: source)
+        if loadedSeasons != seasons { seasons = loadedSeasons }
+        // Stay on the season the user is looking at; otherwise open the requested season,
+        // or the first one with something left to watch.
+        let current = selectedSeason.flatMap { selected in seasons.first { $0.ratingKey == selected.ratingKey } }
+        let initialKey = initialItem.ratingKey
+        let preferred = initialItem.kind == .season
+            ? seasons.first(where: { $0.ratingKey == initialKey })
+            : seasons.first(where: { !$0.isWatched && ($0.index ?? 0) > 0 })
+        if let season = current ?? preferred ?? seasons.first {
+            try await loadEpisodes(of: season, server: server, client: client, from: source)
+        }
+    }
+
+    private func loadEpisodes(of season: PlexMetadata, server: PlexServer, client: PlexAPIClient, from source: DataSource) async throws {
+        selectedSeason = season
+        let loaded = try await client.children(server: server, ratingKey: season.ratingKey, from: source)
+        // Ignore a stale response if the user already picked another season.
+        guard selectedSeason?.ratingKey == season.ratingKey else { return }
+        if loaded != episodes { episodes = loaded }
     }
 
     func toggleWatched(_ episode: PlexMetadata, server: PlexServer, client: PlexAPIClient) async {
@@ -71,7 +90,7 @@ final class ShowDetailViewModel {
             await client.scrobble(server: server, ratingKey: episode.ratingKey)
         }
         if let season = selectedSeason {
-            await select(season: season, server: server, client: client)
+            try? await loadEpisodes(of: season, server: server, client: client, from: .network)
         }
     }
 
