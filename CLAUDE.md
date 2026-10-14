@@ -30,6 +30,7 @@ Before implementing any feature, control, layout, or behavior, check whether tvO
 - Navigation: `NavigationStack` and `TabView` with `Tab` / `Tab(role: .search)`. Never custom tab bars.
 - Tab bars, toolbars and navigation bars get Liquid Glass automatically. Only use `.glassEffect` on custom views the system doesn't style (e.g. the player info overlay).
 - Focus: cards (posters, 16:9 cards, episode rows, cast) use `.buttonStyle(.focusBorder)` with `.focusBorder(shape)` on their artwork, a white border instead of the system zoom (Kyle's call). Other controls keep the system focus effects.
+- Rows of cards and button rows use `.fullWidthFocusSection()`, so up or down reaches a short row from anywhere across the screen.
 - Watched items show `WatchedBadge`: a small black check in a white circle.
 - Remote input: `.onPlayPauseCommand`, `.onMoveCommand`, `.onExitCommand`. Back (`onExitCommand`) pops detail pages (`PopOnExitModifier`) and on another tab's top level switches to Home (`TabRouter` in the environment); only Home leaves the app.
 - Search: `Tab(role: .search)` with `.searchable`.

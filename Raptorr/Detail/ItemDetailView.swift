@@ -61,6 +61,7 @@ struct ItemDetailView: View {
                             .foregroundStyle(.secondary)
                     }
                 }
+                .fullWidthFocusSection()
 
                 if let tagline = item.tagline {
                     Text(tagline)

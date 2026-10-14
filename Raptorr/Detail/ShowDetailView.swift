@@ -24,6 +24,7 @@ struct ShowDetailView: View {
                     } label: {
                         Label(playLabel(for: next), systemImage: "play.fill")
                     }
+                    .fullWidthFocusSection()
                 }
 
                 if let summary = show.summary, !summary.isEmpty {
@@ -40,6 +41,7 @@ struct ShowDetailView: View {
 
                 if viewModel.seasons.count > 1 {
                     seasonPicker
+                        .fullWidthFocusSection()
                 }
 
                 episodeList

@@ -31,6 +31,7 @@ struct MediaShelf: View {
             }
             .scrollClipDisabled()
         }
+        .fullWidthFocusSection()
         .onChange(of: focusedID) { previous, id in
             guard let id else { return }
             // Focus coming in from another row lands on whichever card sits under the old

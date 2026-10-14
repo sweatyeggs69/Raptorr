@@ -74,12 +74,7 @@ struct HomeView: View {
                                 .padding(.bottom, Self.liftAllowance)
                                 // Moving up lands in the row above even when no card sits
                                 // directly above the focused one (a short or scrolled row).
-                                // The section only catches moves inside its frame, so it is
-                                // stretched across the full width first; otherwise a row of two
-                                // cards was only two cards wide and up from the fifth card missed it.
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                                .contentShape(.rect)
-                                .focusSection()
+                                .fullWidthFocusSection()
                                 // Each row fills the area, bottom aligned, so whichever row is
                                 // active lands in the same place.
                                 .containerRelativeFrame(.vertical, alignment: .bottomLeading)
