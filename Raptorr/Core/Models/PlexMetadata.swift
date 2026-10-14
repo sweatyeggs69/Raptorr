@@ -156,7 +156,7 @@ nonisolated extension PlexMetadata {
         }
     }
 
-    /// "S1 · E3 · 2024 · TV-14 · 45m · 4K" style summary line.
+    /// "S1 · E3 · TV-14 · 45m" style summary line.
     var infoLine: String {
         ([episodeLabel].compactMap { $0 } + [detailsLine].filter { !$0.isEmpty }).joined(separator: " · ")
     }
@@ -167,6 +167,13 @@ nonisolated extension PlexMetadata {
         if let contentRating { parts.append(contentRating) }
         if let durationText { parts.append(durationText) }
         return parts.joined(separator: " · ")
+    }
+
+    /// The Home header line for Continue Watching: "S2E3 · 2024 · TV-14 · 45m".
+    var continueWatchingLine: String {
+        [shortEpisodeLabel, year.map(String.init), contentRating, durationText]
+            .compactMap { $0 }
+            .joined(separator: " · ")
     }
 
     /// The transparent title treatment (`Image` of type `clearLogo`), when the server has one.
