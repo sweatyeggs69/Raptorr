@@ -6,6 +6,7 @@ struct SettingsView: View {
     @Environment(\.plexClient) private var client
     @State private var isConfirmingSignOut = false
     @Environment(TabRouter.self) private var router
+    @AppStorage(InterfaceSettings.showsTabIconsKey) private var showsTabIcons = InterfaceSettings.showsTabIconsDefault
 
     var body: some View {
         NavigationStack {
@@ -29,6 +30,10 @@ struct SettingsView: View {
                             connection.disconnect()
                             Task { await client.clearCache() }
                         }
+                    }
+
+                    Section("Interface") {
+                        Toggle("Tab Bar Icons", isOn: $showsTabIcons)
                     }
 
                     Section("Account") {

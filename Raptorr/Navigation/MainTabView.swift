@@ -10,30 +10,31 @@ struct MainTabView: View {
     @Environment(PlaybackCoordinator.self) private var playback
     @State private var viewModel = MainTabViewModel()
     @State private var router = TabRouter()
+    @AppStorage(InterfaceSettings.showsTabIconsKey) private var showsTabIcons = InterfaceSettings.showsTabIconsDefault
 
     var body: some View {
         @Bindable var playback = playback
 
         // Top tab bar like the Apple TV app: Home, one tab per library, Settings, and Search on the right.
         TabView(selection: $router.selection) {
-            Tab("Home", systemImage: "house", value: .home) {
+            Tab(value: .home) {
                 HomeView(sections: viewModel.sections)
+            } label: {
+                TabLabel(title: "Home", systemImage: "house", showsIcon: showsTabIcons)
             }
 
             ForEach(viewModel.sections) { section in
                 Tab(value: AppTab.library(key: section.key)) {
                     LibraryView(section: section)
                 } label: {
-                    // Plain monochrome so the icon turns black with its title when selected,
-                    // like the other tabs; the "tv" symbol otherwise keeps a lighter layer.
-                    Label(section.title, systemImage: section.type.systemImage)
-                        .symbolRenderingMode(.monochrome)
-                        .symbolVariant(.none)
+                    TabLabel(title: section.title, systemImage: section.type.systemImage, showsIcon: showsTabIcons)
                 }
             }
 
-            Tab("Settings", systemImage: "gearshape", value: .settings) {
+            Tab(value: .settings) {
                 SettingsView()
+            } label: {
+                TabLabel(title: "Settings", systemImage: "gearshape", showsIcon: showsTabIcons)
             }
 
             Tab(value: .search, role: .search) {
