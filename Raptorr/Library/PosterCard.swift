@@ -5,6 +5,8 @@ struct PosterCard: View {
     let item: PlexMetadata
     var width: CGFloat = 250
     var onFocus: (() -> Void)?
+    /// The row's focus state, so the row can move focus to this card.
+    var focus: FocusState<String?>.Binding?
 
     var body: some View {
         NavigationLink(value: item) {
@@ -40,6 +42,7 @@ struct PosterCard: View {
             }
         }
         .buttonStyle(.focusBorder)
+        .focused(focus, id: item.id)
     }
 
     private var subtitle: String? {

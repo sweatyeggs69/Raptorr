@@ -20,25 +20,26 @@ struct MediaShelf: View {
             ScrollView(.horizontal) {
                 LazyHStack(alignment: .top, spacing: 40) {
                     ForEach(items) { item in
-                        Group {
-                            switch style {
-                            case .poster:
-                                PosterCard(item: item, width: 200, onFocus: focusAction(for: item))
-                            case .landscape:
-                                LandscapeCard(item: item, onFocus: focusAction(for: item))
-                            }
+                        switch style {
+                        case .poster:
+                            PosterCard(item: item, width: 200, onFocus: focusAction(for: item), focus: $focusedID)
+                        case .landscape:
+                            LandscapeCard(item: item, onFocus: focusAction(for: item), focus: $focusedID)
                         }
-                        .focused($focusedID, equals: item.id)
                     }
                 }
-                // Moving into the row lands on the card last focused here, or the first one,
-                // rather than whichever card happens to sit under the previous row's focus.
-                .defaultFocus($focusedID, lastFocusedID ?? items.first?.id, priority: .userInitiated)
             }
             .scrollClipDisabled()
         }
-        .onChange(of: focusedID) { _, id in
-            if let id { lastFocusedID = id }
+        .onChange(of: focusedID) { previous, id in
+            guard let id else { return }
+            // Focus coming in from another row lands on whichever card sits under the old
+            // one; send it to the card last focused here, or the first, like the TV app.
+            if previous == nil, let target = lastFocusedID ?? items.first?.id, target != id {
+                Task { focusedID = target }
+                return
+            }
+            lastFocusedID = id
         }
     }
 
