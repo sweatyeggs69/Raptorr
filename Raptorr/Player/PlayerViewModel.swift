@@ -49,7 +49,7 @@ final class PlayerViewModel {
         videoView.backgroundColor = .black
         player.drawable = videoView
         #if DEBUG
-        // VLC's own messages about seeking (demuxer index, network access).
+        // VLC's warnings and errors.
         VLCLibrary.shared().loggers = [VLCDiagnosticLogger()]
         #endif
     }
@@ -115,16 +115,14 @@ final class PlayerViewModel {
         // Seeks land on the nearest keyframe instead of decoding up to the exact frame, which
         // stalled the hardware decoder on large files (resume froze while the clock ran).
         media.addOption(":input-fast-seek")
+        // The Apple TV's hardware decoder (VideoToolbox) first, VLC's software decoders only
+        // for what it can't handle. "any" keeps audio and subtitle decoders available.
+        media.addOption(":codec=videotoolbox,any")
         // VLC's default MKV demuxer treats the file's seek index (cues) as untrusted and, since
         // it can't scan ahead over HTTP, seeked from the first frame instead: resume and
         // scrubbing took 20+ seconds. Its trusted variant jumps straight to the cue.
         if partKey.lowercased().hasSuffix(".mkv") {
             media.addOption(":demux=mkv_trusted,any")
-        }
-        // VLC buffers a full second of network data before it starts and after every seek. On
-        // the home network a third of that is plenty; remote and relay keep the default.
-        if server.connectionKind == .local {
-            media.addOption(":network-caching=300")
         }
         if let offset = request.startOffsetMs, offset > 0 {
             pendingResumeMs = offset
@@ -298,8 +296,12 @@ final class PlayerViewModel {
         default:
             if !hasStartedPlaying { phase = .loading }
         }
-        refreshTracks()
-        applyInitialTracksIfReady()
+        // Track lists only change while loading (sidecars arrive late); after that they're
+        // refreshed when the user picks a track, not on every tick.
+        if !hasAppliedInitialTracks {
+            refreshTracks()
+            applyInitialTracksIfReady()
+        }
     }
 
     /// Seeks to the resume point once VLC's video is actually running, then shows the video
