@@ -5,13 +5,13 @@ nonisolated struct LifeDates: Sendable, Equatable {
     var born: DateComponents?
     var died: DateComponents?
 
-    /// "Born January 17, 1962 (age 64)", or with a death "Born ... · Died ... (aged 59)".
+    /// "Born January 17, 1962 (age 64)", or with a death "Born ... · Died ... (age 59)".
     func text(now: Date = .now, calendar: Calendar = .init(identifier: .gregorian)) -> String? {
         guard let born else { return nil }
         var parts = ["Born " + Self.format(born)]
         if let died {
             var died = "Died " + Self.format(died)
-            if let age = Self.age(from: born, to: self.died) { died += " (aged \(age))" }
+            if let age = Self.age(from: born, to: self.died) { died += " (age \(age))" }
             parts.append(died)
         } else if let age = Self.age(from: born, to: calendar.dateComponents([.year, .month, .day], from: now)) {
             parts[0] += " (age \(age))"

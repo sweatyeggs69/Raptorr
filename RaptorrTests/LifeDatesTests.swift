@@ -11,7 +11,7 @@ struct LifeDatesTests {
 
     @Test func agesCountWholeYears() {
         let died = LifeDates(born: DateComponents(year: 1928, month: 4, day: 4), died: DateComponents(year: 2014, month: 5, day: 28))
-        #expect(died.text()?.hasSuffix("(aged 86)") == true)
+        #expect(died.text()?.hasSuffix("(age 86)") == true)
 
         let now = Calendar(identifier: .gregorian).date(from: DateComponents(year: 2026, month: 1, day: 16))!
         let living = LifeDates(born: DateComponents(year: 1962, month: 1, day: 17))
