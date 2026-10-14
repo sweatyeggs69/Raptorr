@@ -43,7 +43,7 @@ Before implementing any feature, control, layout, or behavior, check whether tvO
 - Dependency injection through the SwiftUI Environment (`AuthStore`, `ServerConnectionManager`, `PlaybackCoordinator`, `\.plexClient`, `\.plexServer`).
 - The target uses `SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor`. Plex model types and `PlexAPIClient` are explicitly `nonisolated` and `Sendable`.
 - Storage on tvOS: app file storage (Caches) can be purged at any time, so small persistent state (selected server, client identifier, preferences) goes in UserDefaults/AppStorage and secrets in the Keychain. Anything on disk must be treated as a re-creatable cache.
-- Library data is cached: `PlexAPIClient` writes library GET responses (raw JSON) to `PlexResponseCache` in Caches, keyed by server and request, never by URI or token. Screens read `from: .cache` first, then refresh `from: .network`. Search and playback are not cached.
+- Library data is cached: `PlexAPIClient` writes library GET responses (raw JSON) to `PlexResponseCache` in Caches, keyed by server and request, never by URI or token. Screens read `from: .cache` first, then refresh `from: .network`. Search and playback are not cached. After launch, `LibraryPrefetcher` warms the cache in the background (at most every 6 hours per server): library pages, every title's metadata via batched `/library/metadata/{ids}`, and each show's seasons plus its opening season's episodes.
 - Server connections are picked in order local, then remote (WAN), then relay (`PlexConnection.tiers`), and a URI only counts if `/identity` returns the server's `machineIdentifier`. The pick re-runs at launch, on return to the foreground and on network changes.
 
 ## Build System

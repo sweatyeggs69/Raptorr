@@ -137,6 +137,33 @@ nonisolated final class PlexAPIClient: Sendable {
         try await container(server: server, path: "/library/metadata/\(ratingKey)", source: source).metadata?.first
     }
 
+    /// Fetches full metadata for several items in one `GET /library/metadata/{ids}` request
+    /// (ids comma separated) and caches each item as if it had been fetched on its own, so a
+    /// detail page opened later finds it with `metadata(server:ratingKey:from: .cache)`.
+    func cacheMetadata(server: PlexServer, ratingKeys: [String]) async throws {
+        guard !ratingKeys.isEmpty else { return }
+        let path = "/library/metadata/" + ratingKeys.joined(separator: ",")
+        guard let request = serverRequest(server: server, path: path) else { throw PlexAPIError.invalidURL }
+        let data = try await fetch(request)
+        guard let root = try JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let container = root["MediaContainer"] as? [String: Any],
+              let items = container["Metadata"] as? [[String: Any]] else { return }
+        for item in items {
+            guard let ratingKey = item["ratingKey"] as? String else { continue }
+            var single = container
+            single["Metadata"] = [item]
+            single["size"] = 1
+            let body = try JSONSerialization.data(withJSONObject: ["MediaContainer": single])
+            let key = PlexResponseCache.Key(
+                serverID: server.machineIdentifier,
+                path: "/library/metadata/\(ratingKey)",
+                query: [],
+                page: nil
+            )
+            await cache.store(body, for: key)
+        }
+    }
+
     /// Titles similar to a movie or show (`GET /library/metadata/{ids}/similar`).
     func similar(
         server: PlexServer,
