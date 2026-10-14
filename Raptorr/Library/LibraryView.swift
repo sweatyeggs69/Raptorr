@@ -47,21 +47,23 @@ struct LibraryView: View {
             ContentUnavailableView("Nothing Here Yet", systemImage: section.type.systemImage)
         } else {
             ScrollViewReader { proxy in
-                HStack(spacing: 40) {
-                    ScrollView {
-                        LazyVGrid(columns: columns, spacing: 60) {
-                            ForEach(viewModel.items) { item in
-                                PosterCard(item: item, focus: $focusedID)
-                                    .id(item.id)
-                                    .task {
-                                        await viewModel.itemAppeared(item, section: section, server: server, client: client)
-                                    }
-                            }
+                ScrollView {
+                    LazyVGrid(columns: columns, spacing: 60) {
+                        ForEach(viewModel.items) { item in
+                            PosterCard(item: item, focus: $focusedID)
+                                .id(item.id)
+                                .task {
+                                    await viewModel.itemAppeared(item, section: section, server: server, client: client)
+                                }
                         }
-                        .padding(.vertical, 40)
                     }
-                    .scrollClipDisabled()
-
+                    .padding(.vertical, 40)
+                    // Room for the letter bar, so the last column isn't under it.
+                    .padding(.trailing, viewModel.letters.count > 1 ? LetterJumpBar.width + 40 : 0)
+                }
+                .scrollClipDisabled()
+                // An overlay rather than a sibling, so the bar never changes the grid's size.
+                .overlay(alignment: .trailing) {
                     if viewModel.letters.count > 1 {
                         LetterJumpBar(letters: viewModel.letters) { letter in
                             Task { await jump(to: letter, proxy: proxy) }
