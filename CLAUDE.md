@@ -13,7 +13,7 @@
 Use Apple's TV app on tvOS as the reference for layout and behavior.
 
 - Navigation is the top tab bar (`.tabViewStyle(.tabBarOnly)`): Home, one tab per library, Settings, and Search on the right.
-- Home shows the focused card's backdrop, logo, metadata and description above the rows; Continue Watching uses 16:9 cards.
+- Home shows the focused card's backdrop, logo, metadata and description above the rows; Continue Watching uses 16:9 cards. The active row is locked to the bottom of the screen and rows above it scroll out of view, so the header never pushes it around.
 - Titles show the movie or show's clear logo (`Image` of type `clearLogo`) through `TitleLogo`, falling back to text when there is no logo. Episodes use their show's logo.
 - Show pages switch seasons with a segmented picker (a menu past 8 seasons) and list episodes vertically: 16:9 still on the left, episode number, name and description on the right.
 - Subtitles follow the TV app's menu: Off, Auto (forced subtitles only, matching the audio language), or a specific track.
@@ -39,6 +39,8 @@ Before implementing any feature, control, layout, or behavior, check whether tvO
 - Dependency injection through the SwiftUI Environment (`AuthStore`, `ServerConnectionManager`, `PlaybackCoordinator`, `\.plexClient`, `\.plexServer`).
 - The target uses `SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor`. Plex model types and `PlexAPIClient` are explicitly `nonisolated` and `Sendable`.
 - Storage on tvOS: app file storage (Caches) can be purged at any time, so small persistent state (selected server, client identifier, preferences) goes in UserDefaults/AppStorage and secrets in the Keychain. Anything on disk must be treated as a re-creatable cache.
+- Library data is cached: `PlexAPIClient` writes library GET responses (raw JSON) to `PlexResponseCache` in Caches, keyed by server and request, never by URI or token. Screens read `from: .cache` first, then refresh `from: .network`. Search and playback are not cached.
+- Server connections are picked in order local, then remote (WAN), then relay (`PlexConnection.tiers`), and a URI only counts if `/identity` returns the server's `machineIdentifier`. The pick re-runs at launch, on return to the foreground and on network changes.
 
 ## Build System
 

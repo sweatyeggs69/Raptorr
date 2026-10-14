@@ -13,14 +13,19 @@ nonisolated struct PlexServer: Codable, Sendable, Hashable, Identifiable {
     var id: String { machineIdentifier }
     var baseURL: URL? { URL(string: uri) }
 
-    func with(uri newURI: String) -> PlexServer {
+    /// Whether the current URI is a local, remote or relay connection.
+    var connectionKind: ConnectionKind? {
+        connections.first { $0.uri == uri }?.kind
+    }
+
+    func with(uri newURI: String, connections newConnections: [PlexConnection]? = nil) -> PlexServer {
         PlexServer(
             name: name,
             uri: newURI,
             machineIdentifier: machineIdentifier,
             accessToken: accessToken,
             owned: owned,
-            connections: connections
+            connections: newConnections ?? connections
         )
     }
 }

@@ -4,6 +4,8 @@ struct MainTabView: View {
     let server: PlexServer
 
     @Environment(\.plexClient) private var client
+    @Environment(\.scenePhase) private var scenePhase
+    @Environment(AuthStore.self) private var authStore
     @Environment(ServerConnectionManager.self) private var connection
     @Environment(PlaybackCoordinator.self) private var playback
     @State private var viewModel = MainTabViewModel()
@@ -33,18 +35,31 @@ struct MainTabView: View {
             }
         }
         .tabViewStyle(.tabBarOnly)
-        .environment(\.plexServer, connection.currentServer ?? server)
+        .environment(\.plexServer, activeServer)
+        // Reloads when the connection moves between local, remote and relay.
+        .task(id: activeServer.uri) {
+            await viewModel.loadSections(server: activeServer, client: client)
+        }
         .task {
-            await viewModel.load(server: server, client: client, connection: connection)
+            await viewModel.keepConnectionFresh(connection: connection, client: client, token: authStore.token)
+        }
+        .onChange(of: scenePhase) { _, phase in
+            guard phase == .active else { return }
+            Task { await connection.refreshConnection(token: authStore.token, client: client) }
         }
         .fullScreenCover(item: $playback.request) { request in
-            PlayerView(request: request, server: connection.currentServer ?? server, client: client)
+            PlayerView(request: request, server: activeServer, client: client)
         }
+    }
+
+    private var activeServer: PlexServer {
+        connection.currentServer ?? server
     }
 }
 
 #Preview {
     MainTabView(server: .preview)
+        .environment(AuthStore())
         .environment(ServerConnectionManager())
         .environment(PlaybackCoordinator())
 }

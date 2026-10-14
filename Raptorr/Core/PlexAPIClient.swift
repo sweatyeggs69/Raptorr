@@ -9,9 +9,16 @@ nonisolated final class PlexAPIClient: Sendable {
     static let libraryIdentifier = "com.plexapp.plugins.library"
 
     private let session: URLSession
+    private let cache: PlexResponseCache
 
-    init(session: URLSession = .shared) {
+    init(session: URLSession = .shared, cache: PlexResponseCache = .shared) {
         self.session = session
+        self.cache = cache
+    }
+
+    /// Forgets every cached library response, e.g. on sign out.
+    func clearCache() async {
+        await cache.removeAll()
     }
 
     // MARK: - plex.tv
@@ -41,10 +48,28 @@ nonisolated final class PlexAPIClient: Sendable {
         return try await decode([PlexResource].self, from: request)
     }
 
+    // MARK: - Server identity
+
+    /// `GET /identity` on one connection URI, returning the server's `machineIdentifier`.
+    /// Cheap and unauthenticated, so it doubles as the reachability probe; checking the
+    /// identifier makes sure a LAN address reached this server and not another one.
+    func machineIdentifier(atURI uri: String, timeout: TimeInterval) async -> String? {
+        guard var components = URLComponents(string: uri) else { return nil }
+        components.path = "/identity"
+        guard let url = components.url else { return nil }
+        var request = URLRequest(url: url, timeoutInterval: timeout)
+        for (field, value) in Self.identificationHeaders() {
+            request.setValue(value, forHTTPHeaderField: field)
+        }
+        guard let data = try? await fetch(request),
+              let response = try? decodeBody(PlexResponse.self, from: data, path: "/identity") else { return nil }
+        return response.mediaContainer.machineIdentifier
+    }
+
     // MARK: - Libraries
 
-    func librarySections(server: PlexServer) async throws -> [LibrarySection] {
-        try await container(server: server, path: "/library/sections/all").directory ?? []
+    func librarySections(server: PlexServer, from source: DataSource = .network) async throws -> [LibrarySection] {
+        try await container(server: server, path: "/library/sections/all", source: source).directory ?? []
     }
 
     /// One page of a library, sorted by title.
@@ -52,7 +77,8 @@ nonisolated final class PlexAPIClient: Sendable {
         server: PlexServer,
         section: LibrarySection,
         start: Int,
-        size: Int
+        size: Int,
+        from source: DataSource = .network
     ) async throws -> (items: [PlexMetadata], totalSize: Int?) {
         var query = [URLQueryItem(name: "sort", value: "titleSort")]
         if let type = section.type.metadataTypeNumber {
@@ -62,26 +88,34 @@ nonisolated final class PlexAPIClient: Sendable {
             server: server,
             path: "/library/sections/\(section.key)/all",
             query: query,
-            page: (start, size)
+            page: (start, size),
+            source: source
         )
         return (response.metadata ?? [], response.totalSize)
     }
 
     // MARK: - Hubs
 
-    func continueWatching(server: PlexServer, count: Int = 20) async throws -> [Hub] {
+    func continueWatching(server: PlexServer, count: Int = 20, from source: DataSource = .network) async throws -> [Hub] {
         try await container(
             server: server,
             path: "/hubs/continueWatching",
-            query: [URLQueryItem(name: "count", value: "\(count)")]
+            query: [URLQueryItem(name: "count", value: "\(count)")],
+            source: source
         ).hub ?? []
     }
 
-    func sectionHubs(server: PlexServer, sectionKey: String, count: Int = 20) async throws -> [Hub] {
+    func sectionHubs(
+        server: PlexServer,
+        sectionKey: String,
+        count: Int = 20,
+        from source: DataSource = .network
+    ) async throws -> [Hub] {
         try await container(
             server: server,
             path: "/hubs/sections/\(sectionKey)",
-            query: [URLQueryItem(name: "count", value: "\(count)")]
+            query: [URLQueryItem(name: "count", value: "\(count)")],
+            source: source
         ).hub ?? []
     }
 
@@ -98,25 +132,37 @@ nonisolated final class PlexAPIClient: Sendable {
 
     // MARK: - Metadata
 
-    func metadata(server: PlexServer, ratingKey: String) async throws -> PlexMetadata? {
-        try await container(server: server, path: "/library/metadata/\(ratingKey)").metadata?.first
+    func metadata(server: PlexServer, ratingKey: String, from source: DataSource = .network) async throws -> PlexMetadata? {
+        try await container(server: server, path: "/library/metadata/\(ratingKey)", source: source).metadata?.first
     }
 
     /// Seasons of a show, or episodes of a season. The spec requires paging headers here.
-    func children(server: PlexServer, ratingKey: String, size: Int = 500) async throws -> [PlexMetadata] {
+    func children(
+        server: PlexServer,
+        ratingKey: String,
+        size: Int = 500,
+        from source: DataSource = .network
+    ) async throws -> [PlexMetadata] {
         try await container(
             server: server,
             path: "/library/metadata/\(ratingKey)/children",
-            page: (0, size)
+            page: (0, size),
+            source: source
         ).metadata ?? []
     }
 
     /// All episodes of a show, for shows flagged `skipChildren` (no season level).
-    func grandchildren(server: PlexServer, ratingKey: String, size: Int = 1000) async throws -> [PlexMetadata] {
+    func grandchildren(
+        server: PlexServer,
+        ratingKey: String,
+        size: Int = 1000,
+        from source: DataSource = .network
+    ) async throws -> [PlexMetadata] {
         try await container(
             server: server,
             path: "/library/metadata/\(ratingKey)/grandchildren",
-            page: (0, size)
+            page: (0, size),
+            source: source
         ).metadata ?? []
     }
 
@@ -307,19 +353,35 @@ nonisolated final class PlexAPIClient: Sendable {
 
     // MARK: - Execution
 
+    /// Library requests go through here. `source: nil` skips the cache entirely (search).
     private func container(
         server: PlexServer,
         path: String,
         query: [URLQueryItem] = [],
-        page: (start: Int, size: Int)? = nil
+        page: (start: Int, size: Int)? = nil,
+        source: DataSource? = nil
     ) async throws -> MediaContainer {
+        let cacheKey = PlexResponseCache.Key(serverID: server.machineIdentifier, path: path, query: query, page: page)
+        if source == .cache {
+            guard let data = await cache.data(for: cacheKey) else { throw PlexAPIError.notCached }
+            return try decodeBody(PlexResponse.self, from: data, path: path).mediaContainer
+        }
         guard let request = serverRequest(server: server, path: path, query: query, page: page) else {
             throw PlexAPIError.invalidURL
         }
-        return try await decode(PlexResponse.self, from: request).mediaContainer
+        let data = try await fetch(request)
+        let response = try decodeBody(PlexResponse.self, from: data, path: path)
+        if source == .network {
+            await cache.store(data, for: cacheKey)
+        }
+        return response.mediaContainer
     }
 
     private func decode<T: Decodable>(_ type: T.Type, from request: URLRequest) async throws -> T {
+        try decodeBody(T.self, from: try await fetch(request), path: request.url?.path ?? "")
+    }
+
+    private func fetch(_ request: URLRequest) async throws -> Data {
         let data: Data
         let response: URLResponse
         do {
@@ -331,10 +393,14 @@ nonisolated final class PlexAPIClient: Sendable {
             if http.statusCode == 401 { throw PlexAPIError.unauthorized }
             throw PlexAPIError.serverError(http.statusCode)
         }
+        return data
+    }
+
+    private func decodeBody<T: Decodable>(_ type: T.Type, from data: Data, path: String) throws -> T {
         do {
             return try JSONDecoder().decode(T.self, from: data)
         } catch {
-            throw PlexAPIError.decodingError(error, path: request.url?.path ?? "")
+            throw PlexAPIError.decodingError(error, path: path)
         }
     }
 

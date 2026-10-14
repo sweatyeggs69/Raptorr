@@ -3,6 +3,7 @@ import SwiftUI
 struct SettingsView: View {
     @Environment(AuthStore.self) private var authStore
     @Environment(ServerConnectionManager.self) private var connection
+    @Environment(\.plexClient) private var client
     @State private var isConfirmingSignOut = false
 
     var body: some View {
@@ -11,6 +12,7 @@ struct SettingsView: View {
                 Section("Server") {
                     if let server = connection.currentServer {
                         LabeledContent("Name", value: server.name)
+                        LabeledContent("Connection", value: connectionDescription(for: server))
                         LabeledContent("Address", value: server.uri)
                     }
                     Button("Switch Server", systemImage: "server.rack") {
@@ -35,12 +37,18 @@ struct SettingsView: View {
                 Button("Sign Out", role: .destructive) {
                     connection.disconnect()
                     authStore.signOut()
+                    Task { await client.clearCache() }
                 }
                 Button("Cancel", role: .cancel) {}
             } message: {
                 Text("You'll need to sign in again to watch anything.")
             }
         }
+    }
+
+    private func connectionDescription(for server: PlexServer) -> String {
+        guard connection.isReachable else { return "Unavailable" }
+        return server.connectionKind?.title ?? "Unknown"
     }
 }
 

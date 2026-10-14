@@ -12,12 +12,20 @@ final class ItemDetailViewModel {
     }
 
     /// Hub and list responses are partial, so fetch the full item (media, cast, genres).
+    /// A cached copy fills the page first.
     func load(server: PlexServer, client: PlexAPIClient) async {
+        if let cached = try? await client.metadata(server: server, ratingKey: item.ratingKey, from: .cache) {
+            item = cached
+        }
         if let full = try? await client.metadata(server: server, ratingKey: item.ratingKey) {
             item = full
         }
         if item.kind == .episode, showLogoPath == nil, let showKey = item.grandparentRatingKey {
-            showLogoPath = try? await client.metadata(server: server, ratingKey: showKey)?.logoPath
+            let cachedShow = try? await client.metadata(server: server, ratingKey: showKey, from: .cache)
+            showLogoPath = cachedShow?.logoPath
+            if showLogoPath == nil {
+                showLogoPath = try? await client.metadata(server: server, ratingKey: showKey)?.logoPath
+            }
         }
     }
 
@@ -27,7 +35,9 @@ final class ItemDetailViewModel {
         } else {
             await client.scrobble(server: server, ratingKey: item.ratingKey)
         }
-        await load(server: server, client: client)
+        if let full = try? await client.metadata(server: server, ratingKey: item.ratingKey) {
+            item = full
+        }
     }
 
     var metadataLine: String { item.infoLine }

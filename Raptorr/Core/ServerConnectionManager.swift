@@ -1,7 +1,8 @@
 import Foundation
 import Observation
 
-/// Discovers the user's Plex servers, remembers the chosen one, and keeps its URI reachable.
+/// Discovers the user's Plex servers, remembers the chosen one, and keeps it on the best
+/// connection: local first, then remote (WAN), then Plex relay.
 @Observable
 final class ServerConnectionManager {
     // tvOS has no guaranteed-persistent app file storage (Caches can be purged), so the
@@ -9,6 +10,10 @@ final class ServerConnectionManager {
     private static let serverKey = "selectedServer"
 
     private(set) var currentServer: PlexServer?
+    /// False after a refresh found no connection that answers.
+    private(set) var isReachable = true
+
+    @ObservationIgnored private var refreshTask: Task<Void, Never>?
 
     init() {
         if let data = UserDefaults.standard.data(forKey: Self.serverKey),
@@ -19,12 +24,14 @@ final class ServerConnectionManager {
 
     func select(_ server: PlexServer) {
         currentServer = server
+        isReachable = true
         if let data = try? JSONEncoder().encode(server) {
             UserDefaults.standard.set(data, forKey: Self.serverKey)
         }
     }
 
     func disconnect() {
+        refreshTask?.cancel()
         currentServer = nil
         UserDefaults.standard.removeObject(forKey: Self.serverKey)
     }
@@ -42,9 +49,11 @@ final class ServerConnectionManager {
                 let name = resource.name ?? "Plex Media Server"
                 let owned = resource.owned ?? false
                 group.addTask {
-                    guard let uri = await self.firstReachableURI(connections: connections, token: accessToken) else {
-                        return nil
-                    }
+                    guard let uri = await Self.bestURI(
+                        connections: connections,
+                        machineIdentifier: machineIdentifier,
+                        client: client
+                    ) else { return nil }
                     return PlexServer(
                         name: name,
                         uri: uri,
@@ -66,37 +75,81 @@ final class ServerConnectionManager {
         }
     }
 
-    /// Re-checks the saved server's connections, switching to a better one when the
-    /// network changed since last launch (e.g. local address now reachable).
-    func refreshConnection() async {
-        guard let server = currentServer,
-              let uri = await firstReachableURI(connections: server.connections, token: server.accessToken),
-              uri != server.uri else { return }
-        select(server.with(uri: uri))
+    // MARK: - Keeping the best connection
+
+    /// Re-picks the saved server's connection. Runs at launch, when the app returns to the
+    /// foreground and when the network changes, so a server reached over the relay or WAN
+    /// moves back to the local address as soon as it answers again (and the other way round).
+    ///
+    /// The address list is refreshed from plex.tv first, since a server's addresses can change
+    /// between launches; without internet the saved list is used, so local playback still works.
+    /// A newer refresh replaces one still running, since it may have probed the old network.
+    func refreshConnection(token: String?, client: PlexAPIClient) async {
+        refreshTask?.cancel()
+        let task = Task { await performRefresh(token: token, client: client) }
+        refreshTask = task
+        await task.value
+    }
+
+    private func performRefresh(token: String?, client: PlexAPIClient) async {
+        guard let server = currentServer else { return }
+        var connections = server.connections
+        if let token,
+           let resources = try? await client.resources(token: token),
+           let resource = resources.first(where: { $0.clientIdentifier == server.machineIdentifier }),
+           let fresh = resource.connections, !fresh.isEmpty {
+            connections = fresh
+        }
+        guard !Task.isCancelled, currentServer?.machineIdentifier == server.machineIdentifier else { return }
+
+        guard let uri = await Self.bestURI(
+            connections: connections,
+            machineIdentifier: server.machineIdentifier,
+            client: client
+        ) else {
+            if !Task.isCancelled { isReachable = false }
+            return
+        }
+        guard !Task.isCancelled, currentServer?.machineIdentifier == server.machineIdentifier else { return }
+        isReachable = true
+        if uri != server.uri || connections != server.connections {
+            select(server.with(uri: uri, connections: connections))
+        }
     }
 
     // MARK: - Probing
 
-    /// Tries local connections first, then direct remote ones, then Plex relays.
-    private func firstReachableURI(connections: [PlexConnection], token: String) async -> String? {
-        let local = connections.filter { $0.local == true }
-        let remote = connections.filter { $0.local != true && $0.relay != true }
-        let relay = connections.filter { $0.relay == true }
-        for (tier, timeout) in [(local, 3.0), (remote, 6.0), (relay, 8.0)] {
-            let uris = tier.compactMap(\.uri)
-            if let uri = await firstResponding(uris: uris, token: token, timeout: timeout) {
+    /// Tries every local connection, then every remote (WAN) one, then the relays. Within a
+    /// group all URIs are probed together and the first to answer as this server wins; a later
+    /// group is only tried once the earlier one has failed or timed out.
+    private nonisolated static func bestURI(
+        connections: [PlexConnection],
+        machineIdentifier: String,
+        client: PlexAPIClient
+    ) async -> String? {
+        for tier in PlexConnection.tiers(connections) {
+            if let uri = await firstResponding(
+                uris: tier.uris,
+                machineIdentifier: machineIdentifier,
+                timeout: tier.kind.probeTimeout,
+                client: client
+            ) {
                 return uri
             }
         }
         return nil
     }
 
-    private func firstResponding(uris: [String], token: String, timeout: TimeInterval) async -> String? {
-        guard !uris.isEmpty else { return nil }
-        return await withTaskGroup(of: String?.self) { group in
+    private nonisolated static func firstResponding(
+        uris: [String],
+        machineIdentifier: String,
+        timeout: TimeInterval,
+        client: PlexAPIClient
+    ) async -> String? {
+        await withTaskGroup(of: String?.self) { group in
             for uri in uris {
                 group.addTask {
-                    await self.responds(uri: uri, token: token, timeout: timeout) ? uri : nil
+                    await client.machineIdentifier(atURI: uri, timeout: timeout) == machineIdentifier ? uri : nil
                 }
             }
             for await result in group {
@@ -107,20 +160,5 @@ final class ServerConnectionManager {
             }
             return nil
         }
-    }
-
-    /// `GET /identity` is cheap and answers on any reachable PMS.
-    private func responds(uri: String, token: String, timeout: TimeInterval) async -> Bool {
-        guard var components = URLComponents(string: uri) else { return false }
-        components.path = "/identity"
-        guard let url = components.url else { return false }
-        var request = URLRequest(url: url, timeoutInterval: timeout)
-        for (field, value) in PlexAPIClient.identificationHeaders() {
-            request.setValue(value, forHTTPHeaderField: field)
-        }
-        request.setValue(token, forHTTPHeaderField: "X-Plex-Token")
-        guard let result = try? await URLSession.shared.data(for: request),
-              let http = result.1 as? HTTPURLResponse else { return false }
-        return (200...299).contains(http.statusCode)
     }
 }
