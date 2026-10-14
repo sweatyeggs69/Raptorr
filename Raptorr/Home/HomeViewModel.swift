@@ -11,6 +11,9 @@ final class HomeViewModel {
     /// The card the user is on, described in the header above the rows.
     private(set) var focusedItem: PlexMetadata?
     private(set) var focusedLogoPath: String?
+    /// True while the focused item's logo is being looked up, so the header can leave the
+    /// logo box empty instead of flashing the text title first.
+    private(set) var isLoadingLogo = false
     /// The row holding the focused card, kept at the bottom of the screen.
     private(set) var activeRowID: String?
 
@@ -71,9 +74,11 @@ final class HomeViewModel {
         logoTask?.cancel()
         if let cached = logoCache[logoKey] {
             focusedLogoPath = cached
+            isLoadingLogo = false
             return
         }
         focusedLogoPath = nil
+        isLoadingLogo = true
         logoTask = Task {
             // Skip lookups for cards the user only passes over.
             try? await Task.sleep(for: .milliseconds(250))
@@ -89,6 +94,7 @@ final class HomeViewModel {
             logoCache[logoKey] = logo
             if focusedItem?.logoSourceRatingKey == logoKey {
                 focusedLogoPath = logo
+                isLoadingLogo = false
             }
         }
     }
