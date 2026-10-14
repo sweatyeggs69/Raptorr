@@ -48,6 +48,11 @@ struct MainTabView: View {
             }
         }
         .tabViewStyle(.tabBarOnly)
+        // Only handled with focus on the tab bar of a tab other than Home; otherwise the
+        // system's Back applies (content to tab bar, Home's tab bar leaves the app).
+        .onExitCommand(perform: router.isContentFocused || router.selection == .home ? nil : {
+            router.selection = .home
+        })
         .overlay(alignment: .topTrailing) {
             BackgroundActivityIndicator(isRunning: activity.isRunning)
         }

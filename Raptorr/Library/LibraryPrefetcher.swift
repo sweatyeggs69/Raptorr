@@ -45,17 +45,40 @@ nonisolated struct LibraryPrefetcher: Sendable {
         for section in sections {
             guard !Task.isCancelled else { return false }
             let items = await allItems(in: section, server: server)
+            var images = ImageList()
             for start in stride(from: 0, to: items.count, by: Self.metadataBatchSize) {
                 guard !Task.isCancelled else { return false }
                 let batch = items[start..<min(start + Self.metadataBatchSize, items.count)]
                 try? await client.cacheMetadata(server: server, ratingKeys: batch.map(\.ratingKey))
+                // Cast photos at the size the Cast row asks for, from the metadata just cached.
+                for item in batch {
+                    guard let full = try? await client.metadata(server: server, ratingKey: item.ratingKey, from: .cache) else { continue }
+                    for person in full.role ?? [] {
+                        images.add(client.artworkURL(
+                            server: server,
+                            path: person.thumb,
+                            width: Int(CastCard.portraitSize * 2),
+                            height: Int(CastCard.portraitSize * 2)
+                        ))
+                    }
+                }
             }
             if section.type == .show {
                 for show in items {
                     guard !Task.isCancelled else { return false }
-                    await cacheSeasons(of: show, server: server)
+                    // Stills of the episodes the show page opens on, at `EpisodeRow`'s size.
+                    for episode in await cacheSeasons(of: show, server: server) {
+                        images.add(client.artworkURL(
+                            server: server,
+                            path: episode.thumb,
+                            width: EpisodeRow.stillPixelWidth,
+                            height: EpisodeRow.stillPixelHeight
+                        ))
+                    }
                 }
             }
+            guard !Task.isCancelled else { return false }
+            await ImageLoader.shared.prefetch(images.urls, decode: false)
         }
         guard !Task.isCancelled else { return false }
         UserDefaults.standard.set(Date.now, forKey: defaultsKey)
@@ -119,12 +142,24 @@ nonisolated struct LibraryPrefetcher: Sendable {
         return items
     }
 
-    /// Seasons, then the episodes of the season `ShowDetailViewModel` opens on first.
-    private func cacheSeasons(of show: PlexMetadata, server: PlexServer) async {
-        guard let seasons = try? await client.children(server: server, ratingKey: show.ratingKey) else { return }
-        let opening = seasons.first { !$0.isWatched && ($0.index ?? 0) > 0 } ?? seasons.first
-        if let opening {
-            _ = try? await client.children(server: server, ratingKey: opening.ratingKey)
+    /// Seasons, then the episodes of the season `ShowDetailViewModel` opens on first, which
+    /// it returns.
+    private func cacheSeasons(of show: PlexMetadata, server: PlexServer) async -> [PlexMetadata] {
+        guard let seasons = try? await client.children(server: server, ratingKey: show.ratingKey),
+              let opening = seasons.first(where: { !$0.isWatched && ($0.index ?? 0) > 0 }) ?? seasons.first else {
+            return []
+        }
+        return (try? await client.children(server: server, ratingKey: opening.ratingKey)) ?? []
+    }
+
+    /// Image URLs in order, each once: the same actor appears in many titles.
+    private struct ImageList {
+        private(set) var urls: [URL] = []
+        private var seen = Set<URL>()
+
+        mutating func add(_ url: URL?) {
+            guard let url, seen.insert(url).inserted else { return }
+            urls.append(url)
         }
     }
 }

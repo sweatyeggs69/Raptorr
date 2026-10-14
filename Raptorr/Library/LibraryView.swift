@@ -10,6 +10,7 @@ struct LibraryView: View {
     @State private var path = NavigationPath()
     @FocusState private var focusedID: String?
     @State private var jumpTask: Task<Void, Never>?
+    @State private var isLetterBarFocused = false
     @Environment(TabRouter.self) private var router
     @Environment(BackgroundActivity.self) private var activity
 
@@ -26,9 +27,12 @@ struct LibraryView: View {
     var body: some View {
         NavigationStack(path: $path) {
             content
-                // Back at the top level goes to Home rather than closing the app.
-                .onExitCommand { router.selection = .home }
                 .metadataDestinations()
+        }
+        // Lets Back from the grid move focus up to the tab bar instead of going to Home.
+        .onChange(of: focusedID != nil || isLetterBarFocused || !path.isEmpty) { _, isFocused in
+            guard router.selection == .library(key: section.key) else { return }
+            router.isContentFocused = isFocused
         }
         // Reloads when the connection moves between local, remote and relay.
         // While the library is on screen: the whole library and every poster, so nothing waits
@@ -85,6 +89,8 @@ struct LibraryView: View {
                             jump(to: letter, proxy: proxy, focusTitle: false)
                         } onSelect: { letter in
                             jump(to: letter, proxy: proxy, focusTitle: true)
+                        } onFocusChange: { isFocused in
+                            isLetterBarFocused = isFocused
                         }
                     }
                 }

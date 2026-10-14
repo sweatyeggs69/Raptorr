@@ -9,8 +9,8 @@ struct EpisodeRow: View {
     private let imageWidth: CGFloat = 400
     /// The still's requested pixel size (2x the 16:9 frame), shared with the show page's
     /// prefetch so both ask for the same image.
-    static let stillPixelWidth = 800
-    static let stillPixelHeight = 450
+    nonisolated static let stillPixelWidth = 800
+    nonisolated static let stillPixelHeight = 450
 
     var body: some View {
         Button(action: action) {
