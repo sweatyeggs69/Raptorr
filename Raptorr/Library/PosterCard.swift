@@ -11,6 +11,12 @@ struct PosterCard: View {
             VStack(alignment: .leading, spacing: 8) {
                 ArtworkImage(path: item.posterPath, width: Int(width * 2), height: Int(width * 3))
                     .frame(width: width, height: width * 1.5)
+                    .overlay(alignment: .bottom) {
+                        if let progress = item.progress {
+                            ProgressView(value: progress)
+                                .padding(12)
+                        }
+                    }
                     .clipShape(.rect(cornerRadius: 12))
                     .onFocusGained(onFocus)
                     .overlay(alignment: .topTrailing) {
@@ -22,11 +28,6 @@ struct PosterCard: View {
                                 .padding(8)
                         }
                     }
-
-                if let progress = item.progress {
-                    ProgressView(value: progress)
-                        .frame(width: width)
-                }
 
                 Text(item.kind == .episode ? (item.grandparentTitle ?? item.title) : item.title)
                     .font(.caption)
