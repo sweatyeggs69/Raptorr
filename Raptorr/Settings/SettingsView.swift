@@ -32,7 +32,6 @@ struct SettingsView: View {
                 }
             }
             .frame(maxWidth: 1200)
-            .navigationTitle("Settings")
             .alert("Sign Out of Plex?", isPresented: $isConfirmingSignOut) {
                 Button("Sign Out", role: .destructive) {
                     connection.disconnect()

@@ -14,7 +14,6 @@ struct LibraryView: View {
     var body: some View {
         NavigationStack(path: $path) {
             content
-                .navigationTitle(section.title)
                 .metadataDestinations()
         }
         // Reloads when the connection moves between local, remote and relay.

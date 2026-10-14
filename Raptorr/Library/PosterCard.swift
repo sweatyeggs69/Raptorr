@@ -18,14 +18,11 @@ struct PosterCard: View {
                         }
                     }
                     .clipShape(.rect(cornerRadius: 12))
+                    .focusBorder(.rect(cornerRadius: 12))
                     .onFocusGained(onFocus)
                     .overlay(alignment: .topTrailing) {
                         if item.isWatched {
-                            Image(systemName: "checkmark.circle.fill")
-                                .symbolRenderingMode(.palette)
-                                .foregroundStyle(.white, .tint)
-                                .font(.title3)
-                                .padding(8)
+                            WatchedBadge()
                         }
                     }
 
@@ -42,7 +39,7 @@ struct PosterCard: View {
                     .frame(width: width, alignment: .leading)
             }
         }
-        .buttonStyle(.borderless)
+        .buttonStyle(.focusBorder)
     }
 
     private var subtitle: String? {
