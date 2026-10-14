@@ -78,7 +78,8 @@ final class PlayerViewModel {
                 lastReportedPhase = phase
                 lastReport = .now
             }
-            try? await Task.sleep(for: .milliseconds(500))
+            // Checks often while a resume is pending, so each step of it starts right away.
+            try? await Task.sleep(for: .milliseconds(pendingResumeMs == nil ? 500 : 50))
         }
         finish()
     }
@@ -119,6 +120,11 @@ final class PlayerViewModel {
         // scrubbing took 20+ seconds. Its trusted variant jumps straight to the cue.
         if partKey.lowercased().hasSuffix(".mkv") {
             media.addOption(":demux=mkv_trusted,any")
+        }
+        // VLC buffers a full second of network data before it starts and after every seek. On
+        // the home network a third of that is plenty; remote and relay keep the default.
+        if server.connectionKind == .local {
+            media.addOption(":network-caching=300")
         }
         if let offset = request.startOffsetMs, offset > 0 {
             pendingResumeMs = offset
