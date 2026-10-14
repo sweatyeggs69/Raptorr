@@ -59,7 +59,10 @@ struct HomeView: View {
 
                 ScrollViewReader { proxy in
                     ScrollView {
-                        LazyVStack(alignment: .leading, spacing: 0) {
+                        // Not lazy: the row above the active one sits off screen, and a lazy
+                        // stack could drop it, leaving nothing above for the remote to move to
+                        // except the tab bar.
+                        VStack(alignment: .leading, spacing: 0) {
                             ForEach(viewModel.rows) { row in
                                 MediaShelf(title: row.title, items: row.items, style: row.style) { item in
                                     focus(item, inRow: row.id)
@@ -73,6 +76,9 @@ struct HomeView: View {
                                 // Room below the cards for the focus lift, so the focus engine
                                 // has no reason to scroll.
                                 .padding(.bottom, Self.liftAllowance)
+                                // Moving up lands in the row above even when no card sits
+                                // directly above the focused one (a short or scrolled row).
+                                .focusSection()
                                 // Each row fills the area, bottom aligned, so whichever row is
                                 // active lands in the same place.
                                 .containerRelativeFrame(.vertical, alignment: .bottomLeading)
