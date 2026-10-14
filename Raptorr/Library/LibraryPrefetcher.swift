@@ -174,8 +174,12 @@ nonisolated struct LibraryPrefetcher: Sendable {
     /// it returns. An unchanged show reuses what's cached and only asks the server for
     /// anything missing.
     private func cacheSeasons(of show: PlexMetadata, server: PlexServer, refresh: Bool) async -> [PlexMetadata] {
-        let seasons = refresh ? nil : try? await client.children(server: server, ratingKey: show.ratingKey, from: .cache)
-        guard let seasons = seasons ?? (try? await client.children(server: server, ratingKey: show.ratingKey)),
+        var seasons = refresh ? nil : try? await client.children(server: server, ratingKey: show.ratingKey, from: .cache)
+        // Not `??`: its right side is an autoclosure, which can't await.
+        if seasons == nil {
+            seasons = try? await client.children(server: server, ratingKey: show.ratingKey)
+        }
+        guard let seasons,
               let opening = seasons.first(where: { !$0.isWatched && ($0.index ?? 0) > 0 }) ?? seasons.first else {
             return []
         }
