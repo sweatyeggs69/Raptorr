@@ -9,6 +9,7 @@ struct HomeView: View {
     @Environment(\.plexServer) private var server
     @State private var viewModel = HomeViewModel()
     @State private var path = NavigationPath()
+    @State private var snapTask: Task<Void, Never>?
 
     var body: some View {
         NavigationStack(path: $path) {
@@ -66,12 +67,7 @@ struct HomeView: View {
                             ForEach(viewModel.rows) { row in
                                 MediaShelf(title: row.title, items: row.items, style: row.style) { item in
                                     focus(item, inRow: row.id)
-                                    // Re-snap on every focus change, not just row changes: the
-                                    // focus engine nudges the scroll view to fit a lifted card,
-                                    // which pushed the row title up under the mask.
-                                    withAnimation(.easeInOut) {
-                                        proxy.scrollTo(row.id, anchor: .bottom)
-                                    }
+                                    snap(to: row.id, proxy: proxy)
                                 }
                                 // Room below the cards for the focus lift, so the focus engine
                                 // has no reason to scroll.
@@ -85,7 +81,11 @@ struct HomeView: View {
                                 .id(row.id)
                             }
                         }
+                        .scrollTargetLayout()
                     }
+                    // Every row is exactly one viewport tall, so any scroll the focus engine
+                    // makes on its own still lands with a whole row in place.
+                    .scrollTargetBehavior(.viewAligned)
                     .scrollClipDisabled()
                     // Hides the rows above the active one without making them transparent: a
                     // transparent row can't take focus, which stopped the remote moving up.
@@ -110,6 +110,24 @@ struct HomeView: View {
     /// Tall enough for a poster row (title, 2:3 card, two caption lines) plus the lift allowance.
     private static let rowAreaHeight: CGFloat = 480
     private static let liftAllowance: CGFloat = 30
+
+    /// Keeps the active row locked to the bottom. Snaps on every focus change, then once more
+    /// after the focus engine's own scroll settles: scrolling a row sideways can make the
+    /// engine nudge the outer scroll view after our snap, which pushed the row title up under
+    /// the description.
+    private func snap(to rowID: String, proxy: ScrollViewProxy) {
+        withAnimation(.easeInOut) {
+            proxy.scrollTo(rowID, anchor: .bottom)
+        }
+        snapTask?.cancel()
+        snapTask = Task {
+            try? await Task.sleep(for: .milliseconds(350))
+            guard !Task.isCancelled else { return }
+            withAnimation(.easeOut(duration: 0.2)) {
+                proxy.scrollTo(rowID, anchor: .bottom)
+            }
+        }
+    }
 
     private func focus(_ item: PlexMetadata, inRow rowID: String) {
         viewModel.focus(item, inRow: rowID, server: server, client: client)
