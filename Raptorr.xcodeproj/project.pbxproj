@@ -53,7 +53,6 @@
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				Info.plist,
-				Raptorr.entitlements,
 			);
 			target = 5A7E00000000000000000002 /* Raptorr */;
 		};
@@ -61,7 +60,6 @@
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				Info.plist,
-				RaptorrTopShelf.entitlements,
 			);
 			target = 5A7E0000000000000000002B /* RaptorrTopShelf */;
 		};
@@ -453,7 +451,7 @@
 				CODE_SIGN_ENTITLEMENTS = Raptorr/Raptorr.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = "";
+				DEVELOPMENT_TEAM = YV58QH8DA2;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Raptorr/Info.plist;
@@ -489,7 +487,7 @@
 				CODE_SIGN_ENTITLEMENTS = Raptorr/Raptorr.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = "";
+				DEVELOPMENT_TEAM = YV58QH8DA2;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Raptorr/Info.plist;
@@ -563,7 +561,7 @@
 				CODE_SIGN_ENTITLEMENTS = RaptorrTopShelf/RaptorrTopShelf.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = "";
+				DEVELOPMENT_TEAM = YV58QH8DA2;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = RaptorrTopShelf/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = RaptorrTopShelf;
@@ -589,7 +587,7 @@
 				CODE_SIGN_ENTITLEMENTS = RaptorrTopShelf/RaptorrTopShelf.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = "";
+				DEVELOPMENT_TEAM = YV58QH8DA2;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = RaptorrTopShelf/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = RaptorrTopShelf;
