@@ -177,6 +177,12 @@ extension PlexMetadata {
         return "S\(parentIndex) · E\(index)"
     }
 
+    /// Compact season and episode, e.g. "S2E5".
+    var shortEpisodeLabel: String? {
+        guard kind == .episode, let parentIndex, let index else { return nil }
+        return "S\(parentIndex)E\(index)"
+    }
+
     /// Fraction watched, for items with a saved resume point.
     var progress: Double? {
         guard let viewOffset, let duration, duration > 0, viewOffset > 0 else { return nil }
