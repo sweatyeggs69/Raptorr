@@ -20,14 +20,20 @@ struct PersonView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 60) {
                 HStack(alignment: .top, spacing: 60) {
-                    ArtworkImage(
-                        path: person.thumb,
-                        width: Int(photoWidth * 2),
-                        height: Int(photoWidth * 3),
-                        placeholderSymbol: "person.fill"
-                    )
-                    .frame(width: photoWidth, height: photoWidth * 1.5)
-                    .clipShape(.rect(cornerRadius: 16))
+                    // A button so the top of the page can take focus; without it, up from the
+                    // rows had nowhere to go and the page couldn't scroll back.
+                    Button {} label: {
+                        ArtworkImage(
+                            path: person.thumb,
+                            width: Int(photoWidth * 2),
+                            height: Int(photoWidth * 3),
+                            placeholderSymbol: "person.fill"
+                        )
+                        .frame(width: photoWidth, height: photoWidth * 1.5)
+                        .clipShape(.rect(cornerRadius: 16))
+                        .focusBorder(.rect(cornerRadius: 16))
+                    }
+                    .buttonStyle(.focusBorder)
 
                     VStack(alignment: .leading, spacing: 20) {
                         Text(person.tag ?? "")
@@ -45,6 +51,7 @@ struct PersonView: View {
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
                 }
+                .fullWidthFocusSection()
 
                 if !viewModel.movies.isEmpty {
                     MediaShelf(title: "Movies", items: viewModel.movies)
