@@ -8,6 +8,15 @@
 - All UI uses the default tvOS 27 design language and Liquid Glass styling.
 - Always use lean changelogs when pushing commits.
 
+## Design Reference: the Apple TV App
+
+Use Apple's TV app on tvOS as the reference for layout and behavior.
+
+- Navigation is the top tab bar (`.tabViewStyle(.tabBarOnly)`): Home, one tab per library, Settings, and Search on the right.
+- Home shows the focused card's backdrop, logo, metadata and description above the rows; Continue Watching uses 16:9 cards.
+- Titles show the movie or show's clear logo (`Image` of type `clearLogo`) through `TitleLogo`, falling back to text when there is no logo. Episodes use their show's logo.
+- Subtitles follow the TV app's menu: Off, Auto (forced subtitles only, matching the audio language), or a specific track.
+
 ## STRICT RULE: Always Use Stock Apple First
 
 Before implementing any feature, control, layout, or behavior, check whether tvOS provides it and use that. Only build custom when Apple has no equivalent.
@@ -64,6 +73,8 @@ Paging uses the `X-Plex-Container-Start` / `X-Plex-Container-Size` headers (requ
 - VLCKit plays the original file directly from the documented part endpoint `/library/parts/{partId}/{changestamp}/{filename}` (the part `key`), with the token in the query string.
 - Resume uses the VLC `:start-time=` media option.
 - Sidecar subtitles (`Stream` with a `key`) are added with `addPlaybackSlave`.
+- VLC tracks are paired with Plex streams by order (`TrackMatching`): embedded streams by `index`, then sidecars in the order they were added. Plex supplies names, language and the `forced` flag; if the counts differ, VLC's names are used.
+- Playback starts on the server's preferred audio/subtitle (`selected`), else subtitles on Auto. Choices are saved with `PUT /library/parts/{partId}` (`audioStreamID`, `subtitleStreamID`, 0 = none).
 - Report `POST /:/timeline` on every state change and every 10 seconds; send `stopped` on exit and `PUT /:/scrobble` when the item finished.
 
 ## Code Style

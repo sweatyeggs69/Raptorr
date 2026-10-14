@@ -17,8 +17,7 @@ struct ShowDetailView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 40) {
                 VStack(alignment: .leading, spacing: 12) {
-                    Text(show.title)
-                        .font(.largeTitle.bold())
+                    TitleLogo(title: show.title, logoPath: show.logoPath)
                     Text(viewModel.metadataLine)
                         .font(.headline)
                         .foregroundStyle(.secondary)

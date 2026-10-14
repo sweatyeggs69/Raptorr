@@ -21,12 +21,19 @@ struct TrackSelectionView: View {
                 }
 
                 Section("Subtitles") {
-                    trackRow(name: "Off", isSelected: !viewModel.subtitleTracks.contains(where: \.isSelected)) {
-                        viewModel.selectSubtitleTrack(id: nil)
+                    trackRow(name: "Off", isSelected: viewModel.subtitleMode == .off) {
+                        viewModel.selectSubtitleMode(.off)
+                    }
+                    trackRow(
+                        name: "Auto (Recommended)",
+                        detail: "Shows forced subtitles when dialogue isn't in the audio language",
+                        isSelected: viewModel.subtitleMode == .auto
+                    ) {
+                        viewModel.selectSubtitleMode(.auto)
                     }
                     ForEach(viewModel.subtitleTracks) { track in
-                        trackRow(name: track.name, isSelected: track.isSelected) {
-                            viewModel.selectSubtitleTrack(id: track.id)
+                        trackRow(name: track.name, isSelected: viewModel.subtitleMode == .track(id: track.id)) {
+                            viewModel.selectSubtitleMode(.track(id: track.id))
                         }
                     }
                 }
@@ -35,13 +42,25 @@ struct TrackSelectionView: View {
         }
     }
 
-    private func trackRow(name: String, isSelected: Bool, action: @escaping () -> Void) -> some View {
+    private func trackRow(
+        name: String,
+        detail: String? = nil,
+        isSelected: Bool,
+        action: @escaping () -> Void
+    ) -> some View {
         Button {
             action()
             dismiss()
         } label: {
             HStack {
-                Text(name)
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(name)
+                    if let detail {
+                        Text(detail)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
                 Spacer()
                 if isSelected {
                     Image(systemName: "checkmark")

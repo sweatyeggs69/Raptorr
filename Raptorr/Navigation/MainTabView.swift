@@ -7,29 +7,32 @@ struct MainTabView: View {
     @Environment(ServerConnectionManager.self) private var connection
     @Environment(PlaybackCoordinator.self) private var playback
     @State private var viewModel = MainTabViewModel()
+    @State private var selectedTab: AppTab = .home
 
     var body: some View {
         @Bindable var playback = playback
 
-        TabView {
-            Tab("Home", systemImage: "house") {
+        // Top tab bar like the Apple TV app: Home, one tab per library, Settings, and Search on the right.
+        TabView(selection: $selectedTab) {
+            Tab("Home", systemImage: "house", value: .home) {
                 HomeView(sections: viewModel.sections)
             }
 
             ForEach(viewModel.sections) { section in
-                Tab(section.title, systemImage: section.type.systemImage) {
+                Tab(section.title, systemImage: section.type.systemImage, value: AppTab.library(key: section.key)) {
                     LibraryView(section: section)
                 }
             }
 
-            Tab(role: .search) {
-                SearchView()
-            }
-
-            Tab("Settings", systemImage: "gearshape") {
+            Tab("Settings", systemImage: "gearshape", value: .settings) {
                 SettingsView()
             }
+
+            Tab(value: .search, role: .search) {
+                SearchView()
+            }
         }
+        .tabViewStyle(.tabBarOnly)
         .environment(\.plexServer, connection.currentServer ?? server)
         .task {
             await viewModel.load(server: server, client: client, connection: connection)

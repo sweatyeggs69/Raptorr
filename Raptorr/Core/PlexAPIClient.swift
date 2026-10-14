@@ -171,6 +171,24 @@ nonisolated final class PlexAPIClient: Sendable {
         await fireAndForget(request, label: path)
     }
 
+    // MARK: - Stream selection
+
+    /// `PUT /library/parts/{partId}` saves the user's audio/subtitle choice on the server so
+    /// it is preselected next time (and on other Plex clients). `subtitleStreamID` 0 means none.
+    func setStreamSelection(server: PlexServer, partId: Int, audioStreamID: Int? = nil, subtitleStreamID: Int? = nil) async {
+        var query = [URLQueryItem(name: "allParts", value: "1")]
+        if let audioStreamID {
+            query.append(URLQueryItem(name: "audioStreamID", value: "\(audioStreamID)"))
+        }
+        if let subtitleStreamID {
+            query.append(URLQueryItem(name: "subtitleStreamID", value: "\(subtitleStreamID)"))
+        }
+        guard let request = serverRequest(server: server, path: "/library/parts/\(partId)", query: query, method: "PUT") else {
+            return
+        }
+        await fireAndForget(request, label: "stream selection")
+    }
+
     // MARK: - URLs handed to other components
 
     /// Direct-play URL for a media part (`GET /library/parts/{partId}/{changestamp}/{filename}`).
@@ -195,6 +213,24 @@ nonisolated final class PlexAPIClient: Sendable {
             URLQueryItem(name: "width", value: "\(width)"),
             URLQueryItem(name: "height", value: "\(height)"),
             URLQueryItem(name: "minSize", value: "1"),
+            URLQueryItem(name: "upscale", value: "1"),
+            URLQueryItem(name: "X-Plex-Token", value: server.accessToken),
+        ]
+        return components.url
+    }
+
+    /// A clear logo through `GET /photo/:/transcode`, kept as PNG so its transparency survives
+    /// and scaled to fit inside the box rather than fill it.
+    func logoURL(server: PlexServer, path: String?, width: Int, height: Int) -> URL? {
+        guard let path, !path.isEmpty,
+              let baseURL = server.baseURL,
+              var components = URLComponents(url: baseURL, resolvingAgainstBaseURL: false) else { return nil }
+        components.path = "/photo/:/transcode"
+        components.queryItems = [
+            URLQueryItem(name: "url", value: path),
+            URLQueryItem(name: "width", value: "\(width)"),
+            URLQueryItem(name: "height", value: "\(height)"),
+            URLQueryItem(name: "format", value: "png"),
             URLQueryItem(name: "upscale", value: "1"),
             URLQueryItem(name: "X-Plex-Token", value: server.accessToken),
         ]

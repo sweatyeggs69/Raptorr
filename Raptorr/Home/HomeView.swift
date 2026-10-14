@@ -1,5 +1,7 @@
 import SwiftUI
 
+/// Apple TV style Home: the focused card's backdrop, logo, metadata and description on top,
+/// Continue Watching as 16:9 cards, then each library's rows.
 struct HomeView: View {
     let sections: [LibrarySection]
 
@@ -20,9 +22,9 @@ struct HomeView: View {
 
     @ViewBuilder
     private var content: some View {
-        if viewModel.shelves.isEmpty, viewModel.isLoading {
+        if viewModel.isEmpty, viewModel.isLoading {
             ProgressView()
-        } else if viewModel.shelves.isEmpty, let errorMessage = viewModel.errorMessage {
+        } else if viewModel.isEmpty, let errorMessage = viewModel.errorMessage {
             ContentUnavailableView {
                 Label("Couldn't Load Home", systemImage: "exclamationmark.triangle")
             } description: {
@@ -32,23 +34,45 @@ struct HomeView: View {
                     Task { await viewModel.load(sections: sections, server: server, client: client) }
                 }
             }
-        } else if viewModel.shelves.isEmpty {
+        } else if viewModel.isEmpty {
             ContentUnavailableView(
                 "Nothing to Show Yet",
                 systemImage: "play.tv",
                 description: Text("Movies and shows you add to Plex will appear here.")
             )
         } else {
-            ScrollView {
-                LazyVStack(alignment: .leading, spacing: 60) {
-                    ForEach(viewModel.shelves) { hub in
-                        MediaShelf(title: hub.title ?? "", items: hub.items)
-                    }
+            VStack(alignment: .leading, spacing: 40) {
+                if let item = viewModel.focusedItem {
+                    FocusedItemHeader(item: item, logoPath: viewModel.focusedLogoPath)
                 }
-                .padding(.vertical, 40)
+
+                ScrollView {
+                    LazyVStack(alignment: .leading, spacing: 60) {
+                        if !viewModel.continueWatching.isEmpty {
+                            MediaShelf(
+                                title: "Continue Watching",
+                                items: viewModel.continueWatching,
+                                style: .landscape,
+                                onFocus: focus
+                            )
+                        }
+                        ForEach(viewModel.shelves) { hub in
+                            MediaShelf(title: hub.title ?? "", items: hub.items, onFocus: focus)
+                        }
+                    }
+                    .padding(.vertical, 20)
+                }
+                .scrollClipDisabled()
             }
-            .scrollClipDisabled()
+            .background {
+                BackdropView(path: viewModel.focusedItem?.backdropPath)
+                    .animation(.easeInOut, value: viewModel.focusedItem?.ratingKey)
+            }
         }
+    }
+
+    private func focus(_ item: PlexMetadata) {
+        viewModel.focus(item, server: server, client: client)
     }
 }
 

@@ -4,6 +4,8 @@ import Observation
 @Observable
 final class ItemDetailViewModel {
     private(set) var item: PlexMetadata
+    /// Episodes use their show's logo, which only the show's own metadata carries.
+    private(set) var showLogoPath: String?
 
     init(item: PlexMetadata) {
         self.item = item
@@ -13,6 +15,9 @@ final class ItemDetailViewModel {
     func load(server: PlexServer, client: PlexAPIClient) async {
         if let full = try? await client.metadata(server: server, ratingKey: item.ratingKey) {
             item = full
+        }
+        if item.kind == .episode, showLogoPath == nil, let showKey = item.grandparentRatingKey {
+            showLogoPath = try? await client.metadata(server: server, ratingKey: showKey)?.logoPath
         }
     }
 
@@ -25,15 +30,7 @@ final class ItemDetailViewModel {
         await load(server: server, client: client)
     }
 
-    var metadataLine: String {
-        var parts: [String] = []
-        if let label = item.episodeLabel { parts.append(label) }
-        if let year = item.year { parts.append(String(year)) }
-        if let contentRating = item.contentRating { parts.append(contentRating) }
-        if let duration = item.durationText { parts.append(duration) }
-        if let resolution = item.media?.first?.videoResolution { parts.append(resolution.uppercased()) }
-        return parts.joined(separator: " · ")
-    }
+    var metadataLine: String { item.infoLine }
 
     var creditsLine: String? {
         let genres = (item.genre ?? []).compactMap(\.tag).prefix(3)

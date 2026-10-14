@@ -34,6 +34,7 @@ nonisolated struct PlexMetadata: Decodable, Sendable, Hashable, Identifiable {
     let genre: [PlexTag]?
     let director: [PlexTag]?
     let role: [PlexTag]?
+    let image: [PlexImage]?
 
     var id: String { ratingKey }
 
@@ -47,6 +48,7 @@ nonisolated struct PlexMetadata: Decodable, Sendable, Hashable, Identifiable {
         case genre = "Genre"
         case director = "Director"
         case role = "Role"
+        case image = "Image"
     }
 
     init(
@@ -81,7 +83,8 @@ nonisolated struct PlexMetadata: Decodable, Sendable, Hashable, Identifiable {
         media: [PlexMedia]? = nil,
         genre: [PlexTag]? = nil,
         director: [PlexTag]? = nil,
-        role: [PlexTag]? = nil
+        role: [PlexTag]? = nil,
+        image: [PlexImage]? = nil
     ) {
         self.ratingKey = ratingKey
         self.key = key
@@ -115,6 +118,7 @@ nonisolated struct PlexMetadata: Decodable, Sendable, Hashable, Identifiable {
         self.genre = genre
         self.director = director
         self.role = role
+        self.image = image
     }
 }
 
@@ -133,6 +137,39 @@ extension PlexMetadata {
     }
 
     var backdropPath: String? { art ?? grandparentArt }
+
+    /// 16:9 artwork: an episode's still, or a movie's or show's background art.
+    var landscapeImagePath: String? {
+        switch kind {
+        case .episode: thumb ?? art ?? grandparentArt
+        default: art ?? thumb
+        }
+    }
+
+    /// The item whose metadata carries the logo: the show for episodes and seasons.
+    var logoSourceRatingKey: String {
+        switch kind {
+        case .episode: grandparentRatingKey ?? ratingKey
+        case .season: parentRatingKey ?? ratingKey
+        default: ratingKey
+        }
+    }
+
+    /// "S1 · E3 · 2024 · TV-14 · 45m · 4K" style summary line.
+    var infoLine: String {
+        var parts: [String] = []
+        if let label = episodeLabel { parts.append(label) }
+        if let year { parts.append(String(year)) }
+        if let contentRating { parts.append(contentRating) }
+        if let durationText { parts.append(durationText) }
+        if let resolution = media?.first?.videoResolution { parts.append(resolution.uppercased()) }
+        return parts.joined(separator: " · ")
+    }
+
+    /// The transparent title treatment (`Image` of type `clearLogo`), when the server has one.
+    var logoPath: String? {
+        image?.first { $0.type == "clearLogo" }?.url
+    }
 
     /// "S2 · E5" style label for episodes.
     var episodeLabel: String? {
