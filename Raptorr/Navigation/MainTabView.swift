@@ -47,6 +47,11 @@ struct MainTabView: View {
         .task(id: activeServer.uri) {
             await viewModel.loadSections(server: activeServer, client: client)
         }
+        // Caches every title's details in the background so detail pages open instantly.
+        .task(id: activeServer.machineIdentifier + "|" + viewModel.sections.map(\.key).joined(separator: ","), priority: .background) {
+            guard !viewModel.sections.isEmpty else { return }
+            await LibraryPrefetcher(client: client).run(sections: viewModel.sections, server: activeServer)
+        }
         .task {
             await viewModel.keepConnectionFresh(connection: connection, client: client, token: authStore.token)
         }
