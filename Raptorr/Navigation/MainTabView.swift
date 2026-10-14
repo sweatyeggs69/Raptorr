@@ -14,17 +14,12 @@ struct MainTabView: View {
     @State private var isShowingFirstSyncNotice = false
     /// Bumped by the sync button; each bump runs a full sync whether or not one is due.
     @State private var syncRequests = 0
-    @State private var isShowingSettings = false
     @AppStorage(InterfaceSettings.showsTabIconsKey) private var showsTabIcons = InterfaceSettings.showsTabIconsDefault
 
     var body: some View {
         @Bindable var playback = playback
 
         tabs
-            // Before the `.environment` modifiers below, so Settings gets them too. Back closes it.
-            .fullScreenCover(isPresented: $isShowingSettings) {
-                SettingsView()
-            }
             .environment(router)
             .environment(activity)
             .environment(\.plexServer, activeServer)
@@ -63,9 +58,17 @@ struct MainTabView: View {
     }
 
     private var tabs: some View {
-        // Top tab bar like the Apple TV app: Home, one tab per library, and Search. Sync and
-        // Settings sit outside it, on either side.
+        // Top tab bar like the Apple TV app: Search on the left, Home, one tab per library,
+        // and an icon-only Settings on the right. Sync sits outside it, on the left.
         TabView(selection: $router.selection) {
+            Tab(value: .search, role: .search) {
+                SearchView()
+            } label: {
+                // Just the magnifying glass, as in the TV app; VoiceOver still reads "Search".
+                Image(systemName: "magnifyingglass")
+                    .accessibilityLabel("Search")
+            }
+
             Tab(value: .home) {
                 HomeView(sections: viewModel.sections)
             } label: {
@@ -80,12 +83,11 @@ struct MainTabView: View {
                 }
             }
 
-            Tab(value: .search, role: .search) {
-                SearchView()
+            Tab(value: .settings) {
+                SettingsView()
             } label: {
-                // Just the magnifying glass, as in the TV app; VoiceOver still reads "Search".
-                Image(systemName: "magnifyingglass")
-                    .accessibilityLabel("Search")
+                Image(systemName: "gearshape")
+                    .accessibilityLabel("Settings")
             }
         }
         .tabViewStyle(.tabBarOnly)
@@ -93,8 +95,6 @@ struct MainTabView: View {
         .overlay {
             TopBarAccessories(isSyncing: activity.isRunning) {
                 syncRequests += 1
-            } onSettings: {
-                isShowingSettings = true
             }
         }
     }

@@ -4,8 +4,8 @@ import Foundation
 /// opens from cache instead of waiting on the server.
 ///
 /// Per library it caches the title list (the same pages `LibraryViewModel` reads), every
-/// title's full metadata in batches, and for shows the seasons plus the episodes of the
-/// season the show page opens on. A full pass runs at most every few hours per server.
+/// title's full metadata in batches, every title's backdrop and logo, and for shows the
+/// seasons plus the episodes of the season the show page opens on. A full pass runs at most every few hours per server.
 nonisolated struct LibraryPrefetcher: Sendable {
     let client: PlexAPIClient
 
@@ -70,8 +70,21 @@ nonisolated struct LibraryPrefetcher: Sendable {
             }
             let staleKeys = Set(stale.map(\.ratingKey))
 
-            // Cast photos at the size the Cast row asks for. Images already on disk are
-            // skipped by the prefetch, and changed artwork has a new URL.
+            // Each detail page's backdrop and logo, at the sizes `BackdropView` and
+            // `TitleLogo` ask for. Images already on disk are skipped by the prefetch, and
+            // changed artwork has a new URL.
+            for item in items {
+                let full = cached[item.ratingKey] ?? item
+                images.add(client.artworkURL(server: server, path: full.backdropPath, width: 1920, height: 1080))
+                images.add(client.logoURL(
+                    server: server,
+                    path: full.logoPath,
+                    width: Int(TitleLogo.widthLimit * 2),
+                    height: Int(TitleLogo.defaultHeight * 2)
+                ))
+            }
+
+            // Cast photos at the size the Cast row asks for.
             for item in items {
                 for person in cached[item.ratingKey]?.role ?? [] {
                     images.add(client.artworkURL(
