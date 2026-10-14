@@ -106,6 +106,9 @@ final class PlayerViewModel {
         plexAudioStreams = TrackMatching.plexAudioStreams(in: part)
         plexSubtitleStreams = TrackMatching.plexSubtitleStreams(in: part)
 
+        // Seeks land on the nearest keyframe instead of decoding up to the exact frame, which
+        // stalled the hardware decoder on large files (resume froze while the clock ran).
+        media.addOption(":input-fast-seek")
         if let offset = request.startOffsetMs, offset > 0 {
             pendingResumeMs = offset
             currentTimeMs = offset
@@ -288,9 +291,15 @@ final class PlayerViewModel {
         if !hasSentResumeSeek, player.isSeekable {
             hasSentResumeSeek = true
             player.time = VLCTime(number: NSNumber(value: target))
+            #if DEBUG
+            print("[Player] resume seek to \(target)ms sent")
+            #endif
             return
         }
         let reached = hasSentResumeSeek && Int(player.time.intValue) >= target - 5000
+        #if DEBUG
+        print("[Player] resume: seekable=\(player.isSeekable) sent=\(hasSentResumeSeek) time=\(player.time.intValue)ms target=\(target)ms")
+        #endif
         if reached || ContinuousClock.now >= resumeDeadline! {
             pendingResumeMs = nil
             videoView.isHidden = false
