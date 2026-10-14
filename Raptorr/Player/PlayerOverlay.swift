@@ -46,17 +46,17 @@ struct PlayerOverlay: View {
     }
 
     private var timeline: some View {
-        VStack(spacing: 12) {
+        // Elapsed time on the left of the bar, time remaining on the right.
+        HStack(spacing: 24) {
+            Text(Self.format(ms: viewModel.currentTimeMs))
+                .foregroundStyle(.secondary)
+
             ProgressView(value: viewModel.progress)
 
-            HStack {
-                Text(Self.format(ms: viewModel.currentTimeMs))
-                Spacer()
-                Text("-" + Self.format(ms: max(viewModel.durationMs - viewModel.currentTimeMs, 0)))
-            }
-            .font(.caption.monospacedDigit())
-            .foregroundStyle(.secondary)
+            Text("-" + Self.format(ms: max(viewModel.durationMs - viewModel.currentTimeMs, 0)))
+                .foregroundStyle(.secondary)
         }
+        .font(.caption.monospacedDigit())
         .padding(32)
         .glassEffect(in: .rect(cornerRadius: 32))
     }
