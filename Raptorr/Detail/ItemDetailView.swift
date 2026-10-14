@@ -39,7 +39,8 @@ struct ItemDetailView: View {
                         Button {
                             playback.play(item, resume: false)
                         } label: {
-                            FocusExpandingLabel(title: "Play from Beginning", systemImage: "arrow.counterclockwise")
+                            Label("Play from Beginning", systemImage: "arrow.counterclockwise")
+                                .labelStyle(.iconOnly)
                         }
                     } else {
                         Button("Play", systemImage: "play.fill") {
@@ -50,10 +51,13 @@ struct ItemDetailView: View {
                     Button {
                         Task { await viewModel.toggleWatched(server: server, client: client) }
                     } label: {
-                        FocusExpandingLabel(
-                            title: item.isWatched ? "Mark Unwatched" : "Mark Watched",
+                        // Filled check when watched; the symbol transforms when it changes.
+                        Label(
+                            item.isWatched ? "Mark Unwatched" : "Mark Watched",
                             systemImage: item.isWatched ? "checkmark.circle.fill" : "checkmark.circle"
                         )
+                        .labelStyle(.iconOnly)
+                        .contentTransition(.symbolEffect(.replace))
                     }
 
                     if let duration = item.durationText {
