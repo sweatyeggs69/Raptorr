@@ -52,27 +52,39 @@ struct HomeView: View {
                     Spacer()
                 }
 
-                ScrollView {
-                    LazyVStack(alignment: .leading, spacing: 0) {
-                        ForEach(viewModel.rows) { row in
-                            MediaShelf(title: row.title, items: row.items, style: row.style) { item in
-                                focus(item, inRow: row.id)
+                ScrollViewReader { proxy in
+                    ScrollView {
+                        LazyVStack(alignment: .leading, spacing: 0) {
+                            ForEach(viewModel.rows) { row in
+                                MediaShelf(title: row.title, items: row.items, style: row.style) { item in
+                                    focus(item, inRow: row.id)
+                                }
+                                // Each row fills the area, bottom aligned, so whichever row is
+                                // active lands in the same place.
+                                .containerRelativeFrame(.vertical, alignment: .bottomLeading)
+                                .id(row.id)
                             }
-                            // Each row fills the area, bottom aligned, so whichever row is
-                            // active lands in the same place.
-                            .containerRelativeFrame(.vertical, alignment: .bottomLeading)
-                            .opacity(viewModel.isAboveActiveRow(row) ? 0 : 1)
-                            .id(row.id)
                         }
                     }
-                    .scrollTargetLayout()
+                    .scrollClipDisabled()
+                    // Hides the rows above the active one without making them transparent: a
+                    // transparent row can't take focus, which stopped the remote moving up.
+                    // The mask reaches past the sides and bottom so focused cards can still lift.
+                    .mask {
+                        Rectangle()
+                            .padding(.horizontal, -200)
+                            .padding(.bottom, -200)
+                    }
+                    .frame(height: Self.rowAreaHeight)
+                    // Focus moves first, then the active row snaps to the bottom slot.
+                    .onChange(of: viewModel.activeRowID) { _, rowID in
+                        guard let rowID else { return }
+                        withAnimation(.easeInOut) {
+                            proxy.scrollTo(rowID, anchor: .bottom)
+                        }
+                    }
                 }
-                .scrollPosition(id: $viewModel.activeRowID, anchor: .bottom)
-                .scrollTargetBehavior(.viewAligned)
-                .scrollClipDisabled()
-                .frame(height: Self.rowAreaHeight)
             }
-            .animation(.easeInOut, value: viewModel.activeRowID)
             .background {
                 BackdropView(path: viewModel.focusedItem?.backdropPath)
                     .animation(.easeInOut, value: viewModel.focusedItem?.ratingKey)

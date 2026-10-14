@@ -12,7 +12,7 @@ final class HomeViewModel {
     private(set) var focusedItem: PlexMetadata?
     private(set) var focusedLogoPath: String?
     /// The row holding the focused card, kept at the bottom of the screen.
-    var activeRowID: String?
+    private(set) var activeRowID: String?
 
     /// Logo lookups by the rating key that carries the logo; `nil` means the item has none.
     @ObservationIgnored private var logoCache: [String: String?] = [:]
@@ -30,14 +30,6 @@ final class HomeViewModel {
         }
         rows += shelves.map { HomeRow(id: $0.id, title: $0.title ?? "", items: $0.items, style: .poster) }
         return rows
-    }
-
-    /// Rows above the active one scroll out of view behind the header.
-    func isAboveActiveRow(_ row: HomeRow) -> Bool {
-        let rows = rows
-        guard let active = rows.firstIndex(where: { $0.id == activeRowID }),
-              let index = rows.firstIndex(where: { $0.id == row.id }) else { return false }
-        return index < active
     }
 
     /// Continue Watching first, then each library's own hubs (Recently Added, etc.).
