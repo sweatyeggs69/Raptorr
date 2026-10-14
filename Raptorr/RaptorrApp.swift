@@ -7,7 +7,7 @@ struct RaptorrApp: App {
     @State private var playback = PlaybackCoordinator()
 
     init() {
-        // Artwork loads through AsyncImage on the shared session; give it room to keep
+        // Artwork loads through CrossfadeImage on the shared session; give it room to keep
         // posters and backdrops between launches (Caches, so tvOS may purge it).
         URLCache.shared = URLCache(memoryCapacity: 64 * 1024 * 1024, diskCapacity: 512 * 1024 * 1024)
     }
