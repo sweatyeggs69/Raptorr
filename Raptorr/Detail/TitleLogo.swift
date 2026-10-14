@@ -8,12 +8,24 @@ struct TitleLogo: View {
     var maxWidth: CGFloat = 800
     var maxHeight: CGFloat = 220
     var font: Font = .largeTitle.bold()
+    /// Leaves the box empty while the caller is still finding out whether a logo exists.
+    var isLoading = false
 
     @Environment(\.plexClient) private var client
     @Environment(\.plexServer) private var server
 
     var body: some View {
-        if let url = client.logoURL(server: server, path: logoPath, width: Int(maxWidth * 2), height: Int(maxHeight * 2)) {
+        // Logo, fallback text and loading state all fill the same box, anchored bottom left,
+        // so switching between titles never changes the layout around it.
+        content
+            .frame(width: maxWidth, height: maxHeight, alignment: .bottomLeading)
+    }
+
+    @ViewBuilder
+    private var content: some View {
+        if isLoading {
+            Color.clear
+        } else if let url = client.logoURL(server: server, path: logoPath, width: Int(maxWidth * 2), height: Int(maxHeight * 2)) {
             AsyncImage(url: url) { phase in
                 if let image = phase.image {
                     image
@@ -24,8 +36,7 @@ struct TitleLogo: View {
                 } else if phase.error != nil {
                     titleText
                 } else {
-                    // Reserve the space while loading so the layout doesn't jump.
-                    Color.clear.frame(width: maxWidth, height: maxHeight)
+                    Color.clear
                 }
             }
         } else {
@@ -37,6 +48,8 @@ struct TitleLogo: View {
         Text(title)
             .font(font)
             .lineLimit(2)
+            .minimumScaleFactor(0.6)
+            .frame(maxWidth: maxWidth, alignment: .bottomLeading)
     }
 }
 

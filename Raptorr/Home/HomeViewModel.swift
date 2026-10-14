@@ -11,8 +11,11 @@ final class HomeViewModel {
     /// The card the user is on, described in the header above the rows.
     private(set) var focusedItem: PlexMetadata?
     private(set) var focusedLogoPath: String?
+    /// True while the focused item's logo is being looked up, so the header can leave the
+    /// logo box empty instead of flashing the text title first.
+    private(set) var isLoadingLogo = false
     /// The row holding the focused card, kept at the bottom of the screen.
-    var activeRowID: String?
+    private(set) var activeRowID: String?
 
     /// Logo lookups by the rating key that carries the logo; `nil` means the item has none.
     @ObservationIgnored private var logoCache: [String: String?] = [:]
@@ -30,14 +33,6 @@ final class HomeViewModel {
         }
         rows += shelves.map { HomeRow(id: $0.id, title: $0.title ?? "", items: $0.items, style: .poster) }
         return rows
-    }
-
-    /// Rows above the active one scroll out of view behind the header.
-    func isAboveActiveRow(_ row: HomeRow) -> Bool {
-        let rows = rows
-        guard let active = rows.firstIndex(where: { $0.id == activeRowID }),
-              let index = rows.firstIndex(where: { $0.id == row.id }) else { return false }
-        return index < active
     }
 
     /// Continue Watching first, then each library's own hubs (Recently Added, etc.).
@@ -79,9 +74,11 @@ final class HomeViewModel {
         logoTask?.cancel()
         if let cached = logoCache[logoKey] {
             focusedLogoPath = cached
+            isLoadingLogo = false
             return
         }
         focusedLogoPath = nil
+        isLoadingLogo = true
         logoTask = Task {
             // Skip lookups for cards the user only passes over.
             try? await Task.sleep(for: .milliseconds(250))
@@ -97,6 +94,7 @@ final class HomeViewModel {
             logoCache[logoKey] = logo
             if focusedItem?.logoSourceRatingKey == logoKey {
                 focusedLogoPath = logo
+                isLoadingLogo = false
             }
         }
     }
