@@ -4,6 +4,7 @@ import SwiftUI
 struct PosterCard: View {
     let item: PlexMetadata
     var width: CGFloat = 250
+    var onFocus: (() -> Void)?
 
     var body: some View {
         NavigationLink(value: item) {
@@ -11,6 +12,7 @@ struct PosterCard: View {
                 ArtworkImage(path: item.posterPath, width: Int(width * 2), height: Int(width * 3))
                     .frame(width: width, height: width * 1.5)
                     .clipShape(.rect(cornerRadius: 12))
+                    .onFocusGained(onFocus)
                     .overlay(alignment: .topTrailing) {
                         if item.isWatched {
                             Image(systemName: "checkmark.circle.fill")

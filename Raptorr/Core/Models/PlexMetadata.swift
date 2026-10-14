@@ -138,6 +138,34 @@ extension PlexMetadata {
 
     var backdropPath: String? { art ?? grandparentArt }
 
+    /// 16:9 artwork: an episode's still, or a movie's or show's background art.
+    var landscapeImagePath: String? {
+        switch kind {
+        case .episode: thumb ?? art ?? grandparentArt
+        default: art ?? thumb
+        }
+    }
+
+    /// The item whose metadata carries the logo: the show for episodes and seasons.
+    var logoSourceRatingKey: String {
+        switch kind {
+        case .episode: grandparentRatingKey ?? ratingKey
+        case .season: parentRatingKey ?? ratingKey
+        default: ratingKey
+        }
+    }
+
+    /// "S1 · E3 · 2024 · TV-14 · 45m · 4K" style summary line.
+    var infoLine: String {
+        var parts: [String] = []
+        if let label = episodeLabel { parts.append(label) }
+        if let year { parts.append(String(year)) }
+        if let contentRating { parts.append(contentRating) }
+        if let durationText { parts.append(durationText) }
+        if let resolution = media?.first?.videoResolution { parts.append(resolution.uppercased()) }
+        return parts.joined(separator: " · ")
+    }
+
     /// The transparent title treatment (`Image` of type `clearLogo`), when the server has one.
     var logoPath: String? {
         image?.first { $0.type == "clearLogo" }?.url

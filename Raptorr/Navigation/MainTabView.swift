@@ -12,13 +12,8 @@ struct MainTabView: View {
     var body: some View {
         @Bindable var playback = playback
 
-        // Top tab bar like the Apple TV app: Search, Home, one tab per library, then Settings.
-        // Opens on Home even though Search sits first.
+        // Top tab bar like the Apple TV app: Home, one tab per library, Settings, and Search on the right.
         TabView(selection: $selectedTab) {
-            Tab(value: .search, role: .search) {
-                SearchView()
-            }
-
             Tab("Home", systemImage: "house", value: .home) {
                 HomeView(sections: viewModel.sections)
             }
@@ -31,6 +26,10 @@ struct MainTabView: View {
 
             Tab("Settings", systemImage: "gearshape", value: .settings) {
                 SettingsView()
+            }
+
+            Tab(value: .search, role: .search) {
+                SearchView()
             }
         }
         .tabViewStyle(.tabBarOnly)

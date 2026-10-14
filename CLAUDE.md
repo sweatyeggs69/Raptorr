@@ -12,7 +12,8 @@
 
 Use Apple's TV app on tvOS as the reference for layout and behavior.
 
-- Navigation is the top tab bar (`.tabViewStyle(.tabBarOnly)`): Search first, then Home, one tab per library, then Settings. The app opens on Home.
+- Navigation is the top tab bar (`.tabViewStyle(.tabBarOnly)`): Home, one tab per library, Settings, and Search on the right.
+- Home shows the focused card's backdrop, logo, metadata and description above the rows; Continue Watching uses 16:9 cards.
 - Titles show the movie or show's clear logo (`Image` of type `clearLogo`) through `TitleLogo`, falling back to text when there is no logo. Episodes use their show's logo.
 - Subtitles follow the TV app's menu: Off, Auto (forced subtitles only, matching the audio language), or a specific track.
 
