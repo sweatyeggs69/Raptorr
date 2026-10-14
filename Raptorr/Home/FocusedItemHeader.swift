@@ -11,12 +11,12 @@ struct FocusedItemHeader: View {
     var body: some View {
         // Every slot has a fixed size (the logo box, one line each for the episode title and
         // metadata, three lines of description), so moving between items never shifts anything.
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: HeaderLayout.spacing) {
             TitleLogo(
                 title: item.kind == .episode ? (item.grandparentTitle ?? item.title) : item.title,
                 logoPath: logoPath,
-                maxWidth: 640,
-                maxHeight: 180,
+                maxWidth: HeaderLayout.logoWidth,
+                maxHeight: HeaderLayout.logoHeight,
                 isLoading: isLoadingLogo
             )
 
@@ -37,8 +37,8 @@ struct FocusedItemHeader: View {
                 .lineLimit(1)
 
             Text(item.summary ?? "")
-                .lineLimit(3, reservesSpace: true)
-                .frame(width: 1000, alignment: .topLeading)
+                .lineLimit(HeaderLayout.summaryLines, reservesSpace: true)
+                .frame(width: HeaderLayout.summaryWidth, alignment: .topLeading)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
     }

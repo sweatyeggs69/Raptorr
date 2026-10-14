@@ -14,6 +14,7 @@ Use Apple's TV app on tvOS as the reference for layout and behavior.
 
 - Navigation is the top tab bar (`.tabViewStyle(.tabBarOnly)`): Home, one tab per library, Settings, and Search on the right.
 - Home shows the focused card's backdrop, logo, metadata and description above the rows; Continue Watching uses 16:9 cards. The active row is locked to the bottom of the screen and rows above it scroll out of view, so the header never pushes it around.
+- Home and the movie, episode and show detail pages share one title layout (`HeaderLayout`): a 640x180 logo box, one episode title line, one metadata line and three lines of description, each a fixed slot.
 - Artwork, backdrops and logos load through `CrossfadeImage`, which keeps the old image until the new one loads and crossfades between them, and keeps decoded images in `ImageMemoryCache` so cards rebuilt by lazy rows show instantly. Don't use `AsyncImage` for artwork.
 - Titles show the movie or show's clear logo (`Image` of type `clearLogo`) through `TitleLogo`, falling back to text when there is no logo. Episodes use their show's logo.
 - Show pages switch seasons with a segmented picker (a menu past 8 seasons) and list episodes vertically: 16:9 still on the left, episode number, name and description on the right.
