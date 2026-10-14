@@ -29,7 +29,7 @@ Before implementing any feature, control, layout, or behavior, check whether tvO
 - Tab bars, toolbars and navigation bars get Liquid Glass automatically. Only use `.glassEffect` on custom views the system doesn't style (e.g. the player info overlay).
 - Focus: cards (posters, 16:9 cards, episode rows, cast) use `.buttonStyle(.focusBorder)` with `.focusBorder(shape)` on their artwork, a white border instead of the system zoom (Kyle's call). Other controls keep the system focus effects.
 - Watched items show `WatchedBadge`: a small black check in a white circle.
-- Remote input: `.onPlayPauseCommand`, `.onMoveCommand`, `.onExitCommand`.
+- Remote input: `.onPlayPauseCommand`, `.onMoveCommand`, `.onExitCommand`. Back (`onExitCommand`) pops detail pages (`PopOnExitModifier`) and on another tab's top level switches to Home (`\.showHomeTab`); only Home leaves the app.
 - Search: `Tab(role: .search)` with `.searchable`.
 - Sheets, covers and alerts: system presentations. Confirmations use `.alert` with a destructive action and explicit cancel, never `.confirmationDialog`.
 - Progress: `ProgressView`. Empty and error states: `ContentUnavailableView`.

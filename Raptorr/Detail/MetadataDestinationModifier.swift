@@ -4,12 +4,15 @@ import SwiftUI
 struct MetadataDestinationModifier: ViewModifier {
     func body(content: Content) -> some View {
         content.navigationDestination(for: PlexMetadata.self) { item in
-            switch item.kind {
-            case .show, .season:
-                ShowDetailView(item: item)
-            default:
-                ItemDetailView(item: item)
+            Group {
+                switch item.kind {
+                case .show, .season:
+                    ShowDetailView(item: item)
+                default:
+                    ItemDetailView(item: item)
+                }
             }
+            .modifier(PopOnExitModifier())
         }
     }
 }

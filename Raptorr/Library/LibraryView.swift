@@ -8,12 +8,15 @@ struct LibraryView: View {
     @Environment(\.plexServer) private var server
     @State private var viewModel = LibraryViewModel()
     @State private var path = NavigationPath()
+    @Environment(\.showHomeTab) private var showHomeTab
 
     private let columns = [GridItem(.adaptive(minimum: 250), spacing: 48, alignment: .top)]
 
     var body: some View {
         NavigationStack(path: $path) {
             content
+                // Back at the top level goes to Home rather than closing the app.
+                .onExitCommand { showHomeTab() }
                 .metadataDestinations()
         }
         // Reloads when the connection moves between local, remote and relay.

@@ -41,6 +41,7 @@ struct MainTabView: View {
             }
         }
         .tabViewStyle(.tabBarOnly)
+        .environment(\.showHomeTab, { selectedTab = .home })
         .environment(\.plexServer, activeServer)
         // Reloads when the connection moves between local, remote and relay.
         .task(id: activeServer.uri) {
