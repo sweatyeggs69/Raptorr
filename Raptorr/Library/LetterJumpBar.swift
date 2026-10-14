@@ -7,22 +7,26 @@ struct LetterJumpBar: View {
     let action: (LetterJump) -> Void
 
     var body: some View {
-        ScrollView {
-            VStack(spacing: 4) {
-                ForEach(letters) { letter in
-                    Button {
-                        action(letter)
-                    } label: {
-                        Text(letter.title)
-                            .font(.callout.weight(.semibold))
-                            .frame(width: 44)
-                    }
-                    .buttonStyle(.borderless)
+        // Sized to its letters (no scroll view, which would stretch and squeeze them into
+        // ellipses) on a glass capsule so it reads as a control even before it has focus.
+        VStack(spacing: 0) {
+            ForEach(letters) { letter in
+                Button {
+                    action(letter)
+                } label: {
+                    Text(letter.title)
+                        .font(.caption.weight(.bold))
+                        .lineLimit(1)
+                        .fixedSize()
+                        .frame(width: 44, height: 28)
                 }
+                .buttonStyle(.borderless)
             }
-            .padding(.vertical, 40)
         }
-        .scrollIndicators(.hidden)
+        .padding(.vertical, 16)
+        .padding(.horizontal, 8)
+        .glassEffect(.regular, in: .capsule)
+        .fixedSize()
         .focusSection()
     }
 }

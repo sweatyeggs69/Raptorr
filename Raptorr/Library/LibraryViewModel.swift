@@ -29,8 +29,12 @@ final class LibraryViewModel {
         if letters.isEmpty, let cached = try? await client.firstCharacters(server: server, section: section, from: .cache) {
             letters = LetterJump.make(from: cached)
         }
-        if let fresh = try? await client.firstCharacters(server: server, section: section) {
-            letters = LetterJump.make(from: fresh)
+        do {
+            letters = LetterJump.make(from: try await client.firstCharacters(server: server, section: section))
+        } catch {
+            #if DEBUG
+            print("[Library] firstCharacters failed for section \(section.key): \(error)")
+            #endif
         }
     }
 
