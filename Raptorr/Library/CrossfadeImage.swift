@@ -13,6 +13,9 @@ struct CrossfadeImage<Placeholder: View>: View {
     var alignment: Alignment
     /// Shown before anything has loaded; `true` when the last load failed.
     var placeholder: (_ failed: Bool) -> Placeholder
+    /// Takes the loaded image's aspect ratio instead of filling the space offered, so in a
+    /// row a short, wide logo is only as wide as it draws.
+    var sizesToImage: Bool
 
     @State private var image: UIImage?
     @State private var imageURL: URL?
@@ -22,12 +25,14 @@ struct CrossfadeImage<Placeholder: View>: View {
         url: URL?,
         contentMode: ContentMode = .fill,
         alignment: Alignment = .center,
+        sizesToImage: Bool = false,
         @ViewBuilder placeholder: @escaping (_ failed: Bool) -> Placeholder
     ) {
         self.url = url
         self.contentMode = contentMode
         self.alignment = alignment
         self.placeholder = placeholder
+        self.sizesToImage = sizesToImage
         // Start on the cached image, if any, so a view rebuilt after scrolling back on
         // screen appears with its artwork already there, without a fade.
         let cached = url.flatMap(ImageMemoryCache.shared.image(for:))
@@ -37,7 +42,13 @@ struct CrossfadeImage<Placeholder: View>: View {
 
     var body: some View {
         ZStack(alignment: alignment) {
-            if let image {
+            if let image, sizesToImage {
+                Image(uiImage: image)
+                    .resizable()
+                    .aspectRatio(image.size.width / max(image.size.height, 1), contentMode: .fit)
+                    .id(imageURL)
+                    .transition(.opacity)
+            } else if let image {
                 Image(uiImage: image)
                     .resizable()
                     .aspectRatio(contentMode: contentMode)

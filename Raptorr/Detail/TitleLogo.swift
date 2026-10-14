@@ -10,6 +10,9 @@ struct TitleLogo: View {
     var font: Font = .largeTitle.bold()
     /// Leaves the box empty while the caller is still finding out whether a logo exists.
     var isLoading = false
+    /// Sizes to the logo (or the text) instead of filling a fixed box, for inline use such as
+    /// the player's title bar, where the episode title follows right after the logo.
+    var hugsContent = false
 
     @Environment(\.plexClient) private var client
     @Environment(\.plexServer) private var server
@@ -17,10 +20,22 @@ struct TitleLogo: View {
     var body: some View {
         // Logo, fallback text and loading state all fill the same box, anchored bottom left,
         // so switching between titles never changes the layout around it.
-        content
-            .frame(width: maxWidth, height: maxHeight, alignment: .bottomLeading)
+        sized(content)
             .animation(.easeInOut(duration: 0.35), value: logoPath)
             .animation(.easeInOut(duration: 0.35), value: isLoading)
+    }
+
+    @ViewBuilder
+    private func sized(_ view: some View) -> some View {
+        if hugsContent {
+            view
+                .frame(maxWidth: maxWidth, alignment: .leading)
+                .frame(height: maxHeight)
+                .fixedSize(horizontal: true, vertical: false)
+        } else {
+            view
+                .frame(width: maxWidth, height: maxHeight, alignment: .bottomLeading)
+        }
     }
 
     @ViewBuilder
@@ -30,7 +45,7 @@ struct TitleLogo: View {
         } else if let url = client.logoURL(server: server, path: logoPath, width: Int(maxWidth * 2), height: Int(maxHeight * 2)) {
             // The fitted logo is usually narrower or shorter than the box; it sits in the
             // bottom left corner and crossfades when the title changes.
-            CrossfadeImage(url: url, contentMode: .fit, alignment: .bottomLeading) { failed in
+            CrossfadeImage(url: url, contentMode: .fit, alignment: .bottomLeading, sizesToImage: hugsContent) { failed in
                 if failed {
                     titleText
                 } else {
@@ -50,7 +65,7 @@ struct TitleLogo: View {
             .lineLimit(2)
             .minimumScaleFactor(0.6)
             .multilineTextAlignment(.leading)
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomLeading)
+            .frame(maxWidth: hugsContent ? nil : .infinity, maxHeight: .infinity, alignment: .bottomLeading)
     }
 }
 
