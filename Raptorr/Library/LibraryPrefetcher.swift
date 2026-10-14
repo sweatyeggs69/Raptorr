@@ -24,29 +24,42 @@ nonisolated struct LibraryPrefetcher: Sendable {
         }
     }
 
-    func run(sections: [LibrarySection], server: PlexServer) async {
-        let defaultsKey = Self.lastRunKeyPrefix + server.machineIdentifier
-        if let last = UserDefaults.standard.object(forKey: defaultsKey) as? Date,
-           Date.now.timeIntervalSince(last) < Self.minimumInterval {
-            return
+    /// Whether a full pass has ever finished for this server (since the cache was last cleared).
+    static func hasRun(for server: PlexServer) -> Bool {
+        UserDefaults.standard.object(forKey: lastRunKeyPrefix + server.machineIdentifier) != nil
+    }
+
+    /// Whether a pass is due: never run, or the last one is older than the minimum interval.
+    static func isDue(for server: PlexServer) -> Bool {
+        guard let last = UserDefaults.standard.object(forKey: lastRunKeyPrefix + server.machineIdentifier) as? Date else {
+            return true
         }
+        return Date.now.timeIntervalSince(last) >= minimumInterval
+    }
+
+    /// Runs a full pass when one is due. Returns whether it ran to the end.
+    @discardableResult
+    func run(sections: [LibrarySection], server: PlexServer) async -> Bool {
+        let defaultsKey = Self.lastRunKeyPrefix + server.machineIdentifier
+        guard Self.isDue(for: server) else { return false }
         for section in sections {
-            guard !Task.isCancelled else { return }
+            guard !Task.isCancelled else { return false }
             let items = await allItems(in: section, server: server)
             for start in stride(from: 0, to: items.count, by: Self.metadataBatchSize) {
-                guard !Task.isCancelled else { return }
+                guard !Task.isCancelled else { return false }
                 let batch = items[start..<min(start + Self.metadataBatchSize, items.count)]
                 try? await client.cacheMetadata(server: server, ratingKeys: batch.map(\.ratingKey))
             }
             if section.type == .show {
                 for show in items {
-                    guard !Task.isCancelled else { return }
+                    guard !Task.isCancelled else { return false }
                     await cacheSeasons(of: show, server: server)
                 }
             }
         }
-        guard !Task.isCancelled else { return }
+        guard !Task.isCancelled else { return false }
         UserDefaults.standard.set(Date.now, forKey: defaultsKey)
+        return true
     }
 
     private func allItems(in section: LibrarySection, server: PlexServer) async -> [PlexMetadata] {
