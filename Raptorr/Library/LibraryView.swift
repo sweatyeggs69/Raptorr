@@ -12,7 +12,9 @@ struct LibraryView: View {
     @State private var jumpTask: Task<Void, Never>?
     @Environment(TabRouter.self) private var router
 
-    private let columns = [GridItem(.adaptive(minimum: 250), spacing: 48, alignment: .top)]
+    /// Six posters across; at 230pt they fit beside the letter bar in the 1080p safe area.
+    private let columns = Array(repeating: GridItem(.flexible(), spacing: 40, alignment: .top), count: 6)
+    private let posterWidth: CGFloat = 230
 
     var body: some View {
         NavigationStack(path: $path) {
@@ -51,7 +53,7 @@ struct LibraryView: View {
                 ScrollView {
                     LazyVGrid(columns: columns, spacing: 60) {
                         ForEach(viewModel.items) { item in
-                            PosterCard(item: item, focus: $focusedID)
+                            PosterCard(item: item, width: posterWidth, focus: $focusedID)
                                 .id(item.id)
                                 .task {
                                     await viewModel.itemAppeared(item, section: section, server: server, client: client)
