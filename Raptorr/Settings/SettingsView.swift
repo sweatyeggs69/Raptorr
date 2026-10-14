@@ -5,6 +5,7 @@ struct SettingsView: View {
     @Environment(ServerConnectionManager.self) private var connection
     @Environment(\.plexClient) private var client
     @State private var isConfirmingSignOut = false
+    @Environment(\.showHomeTab) private var showHomeTab
 
     var body: some View {
         NavigationStack {
@@ -32,6 +33,8 @@ struct SettingsView: View {
                 }
             }
             .frame(maxWidth: 1200)
+            // Back goes to Home rather than closing the app.
+            .onExitCommand { showHomeTab() }
             .alert("Sign Out of Plex?", isPresented: $isConfirmingSignOut) {
                 Button("Sign Out", role: .destructive) {
                     connection.disconnect()
