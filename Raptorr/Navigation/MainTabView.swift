@@ -39,6 +39,10 @@ struct MainTabView: View {
 
             Tab(value: .search, role: .search) {
                 SearchView()
+            } label: {
+                // Just the magnifying glass, as in the TV app; VoiceOver still reads "Search".
+                Image(systemName: "magnifyingglass")
+                    .accessibilityLabel("Search")
             }
         }
         .tabViewStyle(.tabBarOnly)
