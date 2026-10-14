@@ -9,19 +9,16 @@ struct FocusedItemHeader: View {
     var isContinueWatching = false
 
     var body: some View {
-        // Every text slot has a fixed size (one line each for the episode title and metadata,
-        // three lines of description). The logo box takes what room is left, up to its full
-        // size, so the header never runs up into the tab bar on a short screen.
-        VStack(alignment: .leading, spacing: 16) {
+        // Every slot has a fixed size (the logo box, one line each for the episode title and
+        // metadata, three lines of description), so moving between items never shifts anything.
+        VStack(alignment: .leading, spacing: 12) {
             TitleLogo(
                 title: item.kind == .episode ? (item.grandparentTitle ?? item.title) : item.title,
                 logoPath: logoPath,
                 maxWidth: 640,
                 maxHeight: 180,
-                isLoading: isLoadingLogo,
-                minHeight: 60
+                isLoading: isLoadingLogo
             )
-            .layoutPriority(-1)
 
             HStack(alignment: .firstTextBaseline, spacing: 16) {
                 Text(item.kind == .episode ? item.title : " ")
@@ -33,18 +30,15 @@ struct FocusedItemHeader: View {
                         .foregroundStyle(.secondary)
                 }
             }
-            .fixedSize(horizontal: false, vertical: true)
 
             Text(metadataLine.isEmpty ? " " : metadataLine)
                 .font(.headline)
                 .foregroundStyle(.secondary)
                 .lineLimit(1)
-                .fixedSize(horizontal: false, vertical: true)
 
             Text(item.summary ?? "")
                 .lineLimit(3, reservesSpace: true)
                 .frame(width: 1000, alignment: .topLeading)
-                .fixedSize(horizontal: false, vertical: true)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
     }

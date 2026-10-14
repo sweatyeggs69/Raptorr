@@ -44,7 +44,7 @@ struct HomeView: View {
         } else {
             // The active row stays locked to the bottom of the screen and the header sits
             // directly above it, so a missing logo or a short description never moves the row.
-            VStack(alignment: .leading, spacing: 40) {
+            VStack(alignment: .leading, spacing: 24) {
                 if let item = viewModel.focusedItem {
                     FocusedItemHeader(
                         item: item,
@@ -52,8 +52,6 @@ struct HomeView: View {
                         isLoadingLogo: viewModel.isLoadingLogo,
                         isContinueWatching: viewModel.activeRowID == HomeViewModel.continueWatchingRowID
                     )
-                    // Keeps clear of the tab bar; the logo shrinks rather than crossing it.
-                    .padding(.top, 40)
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomLeading)
                 } else {
                     Spacer()
@@ -92,6 +90,8 @@ struct HomeView: View {
                     }
                 }
             }
+            // Keeps the header clear of the tab bar.
+            .padding(.top, 60)
             .background {
                 BackdropView(path: viewModel.focusedItem?.backdropPath)
                     .animation(.easeInOut, value: viewModel.focusedItem?.ratingKey)
