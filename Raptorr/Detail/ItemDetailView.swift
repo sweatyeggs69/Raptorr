@@ -16,25 +16,22 @@ struct ItemDetailView: View {
 
         ScrollView {
             VStack(alignment: .leading, spacing: 32) {
-                // Same fixed slots as the Home header (logo box, one title line, one metadata
-                // line, three lines of description), so the title area matches Home exactly.
-                VStack(alignment: .leading, spacing: HeaderLayout.spacing) {
-                    TitleLogo(
-                        title: item.kind == .episode ? (item.grandparentTitle ?? item.title) : item.title,
-                        logoPath: item.kind == .episode ? viewModel.showLogoPath : item.logoPath,
-                        maxWidth: HeaderLayout.logoWidth,
-                        maxHeight: HeaderLayout.logoHeight
-                    )
-                    Text(item.kind == .episode ? item.title : " ")
-                        .font(.title3.bold())
-                        .lineLimit(1)
-                    Text(viewModel.metadataLine.isEmpty ? " " : viewModel.metadataLine)
+                VStack(alignment: .leading, spacing: 12) {
+                    if item.kind == .episode {
+                        TitleLogo(
+                            title: item.grandparentTitle ?? "",
+                            logoPath: viewModel.showLogoPath,
+                            maxHeight: 160,
+                            font: .title2.bold()
+                        )
+                        Text(item.title)
+                            .font(.title.bold())
+                    } else {
+                        TitleLogo(title: item.title, logoPath: item.logoPath)
+                    }
+                    Text(viewModel.metadataLine)
                         .font(.headline)
                         .foregroundStyle(.secondary)
-                        .lineLimit(1)
-                    Text(item.summary ?? "")
-                        .lineLimit(HeaderLayout.summaryLines, reservesSpace: true)
-                        .frame(width: HeaderLayout.summaryWidth, alignment: .topLeading)
                 }
 
                 HStack(spacing: 24) {
@@ -65,6 +62,12 @@ struct ItemDetailView: View {
                 if let tagline = item.tagline {
                     Text(tagline)
                         .font(.title3.italic())
+                }
+
+                if let summary = item.summary, !summary.isEmpty {
+                    Text(summary)
+                        .font(.body)
+                        .frame(maxWidth: 1200, alignment: .leading)
                 }
 
                 if let credits = viewModel.creditsLine {
