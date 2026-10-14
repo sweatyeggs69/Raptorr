@@ -6,6 +6,14 @@ final class PersonViewModel {
     private(set) var person: PlexTag
     private(set) var media: [PlexMetadata] = []
     private(set) var isLoading = false
+    /// The lead of the person's Wikipedia article, when the server has no bio.
+    private(set) var wikipediaBiography: String?
+
+    /// The server's bio if it sent one, else Wikipedia's.
+    var biography: String? {
+        if let summary = person.summary, !summary.isEmpty { return summary }
+        return wikipediaBiography
+    }
 
     init(person: PlexTag) {
         self.person = person
@@ -30,6 +38,9 @@ final class PersonViewModel {
         }
         if let fresh = try? await client.personMedia(server: server, id: id), fresh != media {
             media = fresh
+        }
+        if biography == nil, let name = person.tag {
+            wikipediaBiography = await WikipediaClient.shared.biography(for: name)
         }
     }
 
