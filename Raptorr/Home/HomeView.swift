@@ -46,17 +46,21 @@ struct HomeView: View {
             // The active row stays locked to the bottom of the screen and the header sits
             // directly above it, so a missing logo or a short description never moves the row.
             VStack(alignment: .leading, spacing: 24) {
-                if let item = viewModel.focusedItem {
-                    FocusedItemHeader(
-                        item: item,
-                        logoPath: viewModel.focusedLogoPath,
-                        isLoadingLogo: viewModel.isLoadingLogo,
-                        isContinueWatching: viewModel.activeRowID == HomeViewModel.continueWatchingRowID
-                    )
-                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomLeading)
-                } else {
-                    Spacer()
+                // Logo, text and backdrop change together: the old header fades out as the
+                // new one fades in.
+                ZStack(alignment: .bottomLeading) {
+                    if let header = viewModel.header {
+                        FocusedItemHeader(
+                            item: header.item,
+                            logoPath: header.logoPath,
+                            isContinueWatching: header.isContinueWatching
+                        )
+                        .id(header.id)
+                        .transition(.opacity)
+                    }
                 }
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomLeading)
+                .animation(.easeInOut(duration: 0.35), value: viewModel.header?.id)
 
                 ScrollViewReader { proxy in
                     ScrollView {
@@ -101,8 +105,7 @@ struct HomeView: View {
             // Keeps the header clear of the tab bar.
             .padding(.top, 60)
             .background {
-                BackdropView(path: viewModel.focusedItem?.backdropPath)
-                    .animation(.easeInOut, value: viewModel.focusedItem?.ratingKey)
+                BackdropView(path: viewModel.header?.item.backdropPath)
             }
         }
     }
