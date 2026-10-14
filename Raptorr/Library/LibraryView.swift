@@ -15,9 +15,13 @@ struct LibraryView: View {
 
     /// Six posters across; at 230pt they fit beside the letter bar in the 1080p safe area.
     private let columns = Array(repeating: GridItem(.flexible(), spacing: 40, alignment: .top), count: 6)
-    private let posterWidth: CGFloat = 230
-    /// The poster size requested (twice the point size), matching `PosterCard`.
-    private var posterSize: CGSize { CGSize(width: posterWidth * 2, height: posterWidth * 3) }
+    private let posterWidth = Self.posterWidth
+    private var posterSize: CGSize { Self.posterSize }
+
+    static let posterWidth: CGFloat = 230
+    /// The poster size requested (twice the point size), matching `PosterCard`; the
+    /// background prefetch asks for the same size so the grid finds it cached.
+    static var posterSize: CGSize { CGSize(width: posterWidth * 2, height: posterWidth * 3) }
 
     var body: some View {
         NavigationStack(path: $path) {

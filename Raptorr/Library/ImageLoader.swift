@@ -14,6 +14,20 @@ actor ImageLoader {
     private let disk: ImageDiskCache
     private var inFlight: [URL: Task<UIImage?, Never>] = [:]
 
+    /// More connections to the server than the shared session allows, since the server
+    /// resizes each image on request and runs several at once. No URL cache: images are
+    /// kept in `ImageDiskCache`, so a second copy would only cost disk writes.
+    nonisolated private static let session: URLSession = {
+        let configuration = URLSessionConfiguration.default
+        configuration.httpMaximumConnectionsPerHost = 8
+        configuration.urlCache = nil
+        configuration.requestCachePolicy = .reloadIgnoringLocalCacheData
+        return URLSession(configuration: configuration)
+    }()
+
+    /// Downloads running at once while prefetching.
+    private static let prefetchConcurrency = 8
+
     init(memory: ImageMemoryCache = .shared, disk: ImageDiskCache = .shared) {
         self.memory = memory
         self.memoryCache = memory
@@ -30,7 +44,7 @@ actor ImageLoader {
             if let stored = disk.data(for: url) {
                 data = stored
             } else {
-                guard let result = try? await URLSession.shared.data(from: url),
+                guard let result = try? await ImageLoader.session.data(from: url),
                       ImageLoader.isSuccess(result.1) else { return nil }
                 data = result.0
                 disk.store(data, for: url)
@@ -52,7 +66,7 @@ actor ImageLoader {
         let pending = urls.filter { memory.image(for: $0) == nil && (decode || !disk.contains($0)) }
         await withTaskGroup(of: Void.self) { group in
             var iterator = pending.makeIterator()
-            for _ in 0..<4 {
+            for _ in 0..<Self.prefetchConcurrency {
                 guard let url = iterator.next() else { break }
                 group.addTask { await self.warm(url, decode: decode) }
             }
@@ -67,7 +81,7 @@ actor ImageLoader {
         if decode {
             _ = await image(for: url)
         } else if !disk.contains(url),
-                  let result = try? await URLSession.shared.data(from: url),
+                  let result = try? await ImageLoader.session.data(from: url),
                   Self.isSuccess(result.1) {
             disk.store(result.0, for: url)
         }

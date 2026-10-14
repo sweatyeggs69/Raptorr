@@ -69,6 +69,18 @@ struct MainTabView: View {
             }
             if finished { activity.libraryDidChange() }
         }
+        // Every library's posters, fetched while the user is still on Home so the Movies and
+        // TV Shows grids open with their artwork ready.
+        .task(id: activeServer.machineIdentifier + "|" + viewModel.sections.map(\.key).joined(separator: ","), priority: .background) {
+            guard !viewModel.sections.isEmpty else { return }
+            await activity.track {
+                await LibraryPrefetcher(client: client).cachePosters(
+                    sections: viewModel.sections,
+                    server: activeServer,
+                    size: LibraryView.posterSize
+                )
+            }
+        }
         .alert("Setting Up Your Library", isPresented: $isShowingFirstSyncNotice) {
             Button("OK", role: .cancel) {}
         } message: {
