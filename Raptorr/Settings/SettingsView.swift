@@ -9,30 +9,39 @@ struct SettingsView: View {
 
     var body: some View {
         NavigationStack {
-            List {
-                Section("Server") {
-                    if let server = connection.currentServer {
-                        LabeledContent("Name", value: server.name)
-                        LabeledContent("Connection", value: connectionDescription(for: server))
-                        LabeledContent("Address", value: server.uri)
-                    }
-                    Button("Switch Server", systemImage: "server.rack") {
-                        connection.disconnect()
-                    }
-                }
+            // Laid out like the Apple TV's own Settings: a large symbol on the left half and
+            // the grouped list on the right.
+            HStack(spacing: 80) {
+                Image(systemName: "gearshape")
+                    .font(.system(size: 280, weight: .light))
+                    .foregroundStyle(.secondary)
+                    .frame(maxWidth: .infinity)
 
-                Section("Account") {
-                    Button("Sign Out", systemImage: "rectangle.portrait.and.arrow.right", role: .destructive) {
-                        isConfirmingSignOut = true
+                List {
+                    Section("Server") {
+                        if let server = connection.currentServer {
+                            infoRow("Name", value: server.name)
+                            infoRow("Connection", value: connectionDescription(for: server))
+                            infoRow("Address", value: server.uri)
+                        }
+                        Button("Switch Server", systemImage: "server.rack") {
+                            connection.disconnect()
+                        }
+                    }
+
+                    Section("Account") {
+                        Button("Sign Out", systemImage: "rectangle.portrait.and.arrow.right", role: .destructive) {
+                            isConfirmingSignOut = true
+                        }
+                    }
+
+                    Section("About") {
+                        infoRow("Version", value: PlexClientIdentity.version)
+                        infoRow("Playback", value: "VLCKit")
                     }
                 }
-
-                Section("About") {
-                    LabeledContent("Version", value: PlexClientIdentity.version)
-                    LabeledContent("Playback", value: "VLCKit")
-                }
+                .frame(maxWidth: .infinity)
             }
-            .frame(maxWidth: 1200)
             // Back goes to Home rather than closing the app.
             .onExitCommand { router.selection = .home }
             .alert("Sign Out of Plex?", isPresented: $isConfirmingSignOut) {
@@ -44,6 +53,18 @@ struct SettingsView: View {
                 Button("Cancel", role: .cancel) {}
             } message: {
                 Text("You'll need to sign in again to watch anything.")
+            }
+        }
+    }
+
+    /// A read-only row. tvOS lists only draw rows the focus engine can reach, so it's a
+    /// button that does nothing, the way the system Settings app shows its info rows.
+    private func infoRow(_ title: String, value: String) -> some View {
+        Button {} label: {
+            LabeledContent(title) {
+                Text(value)
+                    .lineLimit(1)
+                    .truncationMode(.middle)
             }
         }
     }
