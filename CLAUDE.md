@@ -83,7 +83,7 @@ Paging uses the `X-Plex-Container-Start` / `X-Plex-Container-Size` headers (requ
 ## Playback
 
 - VLCKit plays the original file directly from the documented part endpoint `/library/parts/{partId}/{changestamp}/{filename}` (the part `key`), with the token in the query string.
-- Resume uses the VLC `:start-time=` media option.
+- Resume seeks (`player.time`) once VLC reports playing, with the video hidden and the timeline on the resume point until it lands; the `:start-time=` option left resumed playback stuck at 0:00.
 - Sidecar subtitles (`Stream` with a `key`) are added with `addPlaybackSlave`.
 - VLC tracks are paired with Plex streams by order (`TrackMatching`): embedded streams by `index`, then sidecars in the order they were added. Plex supplies names, language and the `forced` flag; if the counts differ, VLC's names are used.
 - Playback starts on the server's preferred audio/subtitle (`selected`), else subtitles on Auto. Choices are saved with `PUT /library/parts/{partId}` (`audioStreamID`, `subtitleStreamID`, 0 = none).
