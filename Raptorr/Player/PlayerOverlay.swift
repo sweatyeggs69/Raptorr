@@ -18,9 +18,9 @@ struct PlayerOverlay: View {
         }
     }
 
-    /// Small logo, then the episode title and S#E# for episodes.
+    /// Small logo, with the S#E# and episode title in small text below it for episodes.
     private var titleBar: some View {
-        HStack(alignment: .center, spacing: 20) {
+        VStack(alignment: .leading, spacing: 8) {
             TitleLogo(
                 title: viewModel.item.kind == .episode ? (viewModel.item.grandparentTitle ?? "") : viewModel.item.title,
                 logoPath: viewModel.logoPath,
@@ -31,14 +31,15 @@ struct PlayerOverlay: View {
             )
 
             if viewModel.item.kind == .episode {
-                Text(viewModel.item.title)
-                    .font(.headline)
-                    .lineLimit(1)
-                if let label = viewModel.item.shortEpisodeLabel {
-                    Text(label)
-                        .font(.headline)
-                        .foregroundStyle(.secondary)
+                HStack(spacing: 8) {
+                    if let label = viewModel.item.shortEpisodeLabel {
+                        Text(label)
+                            .foregroundStyle(.secondary)
+                    }
+                    Text(viewModel.item.title)
                 }
+                .font(.caption)
+                .lineLimit(1)
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
