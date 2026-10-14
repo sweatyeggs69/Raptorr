@@ -13,8 +13,10 @@ nonisolated final class VLCDiagnosticLogger: NSObject, VLCLogging, @unchecked Se
     func handleMessage(_ message: String, logLevel: VLCLogLevel, context: VLCLogContext?) {
         let module = context?.module ?? ""
         let lowered = message.lowercased()
+        // The MKV demuxer prints the file's layout (seek head, cues) as "|" lines when it opens.
         let isAboutSeeking = Self.seekModules.contains { module.contains($0) }
             || Self.seekWords.contains { lowered.contains($0) }
+            || message.hasPrefix("|")
         guard logLevel.rawValue <= VLCLogLevel.warning.rawValue || isAboutSeeking else { return }
         print("[VLC \(module)] \(message)")
     }
