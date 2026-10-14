@@ -114,6 +114,12 @@ final class PlayerViewModel {
         // Seeks land on the nearest keyframe instead of decoding up to the exact frame, which
         // stalled the hardware decoder on large files (resume froze while the clock ran).
         media.addOption(":input-fast-seek")
+        // VLC's default MKV demuxer treats the file's seek index (cues) as untrusted and, since
+        // it can't scan ahead over HTTP, seeked from the first frame instead: resume and
+        // scrubbing took 20+ seconds. Its trusted variant jumps straight to the cue.
+        if partKey.lowercased().hasSuffix(".mkv") {
+            media.addOption(":demux=mkv_trusted,any")
+        }
         if let offset = request.startOffsetMs, offset > 0 {
             pendingResumeMs = offset
             currentTimeMs = offset
