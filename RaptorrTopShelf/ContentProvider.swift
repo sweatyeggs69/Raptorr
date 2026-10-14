@@ -6,7 +6,15 @@ import TVServices
 /// Home yet) it returns nothing and the system shows the static Top Shelf image.
 final class ContentProvider: TVTopShelfContentProvider {
     override func loadTopShelfContent() async -> (any TVTopShelfContent)? {
-        guard let snapshot = TopShelfStore.read(), !snapshot.items.isEmpty else { return nil }
+        guard TopShelfStore.directory != nil else {
+            TopShelfStore.log("extension: no App Group container; check the App Groups capability on RaptorrTopShelf")
+            return nil
+        }
+        guard let snapshot = TopShelfStore.read(), !snapshot.items.isEmpty else {
+            TopShelfStore.log("extension: no saved items")
+            return nil
+        }
+        TopShelfStore.log("extension: showing \(snapshot.items.count) items")
 
         let items = snapshot.items.map { item in
             let shelfItem = TVTopShelfSectionedItem(identifier: item.identifier)

@@ -1,4 +1,5 @@
 import Foundation
+import os
 
 /// The Continue Watching snapshot and its artwork, kept in the App Group container the app
 /// and the Top Shelf extension share. The app writes it; the extension only reads it, so the
@@ -34,6 +35,18 @@ nonisolated enum TopShelfStore {
         guard let snapshotURL, let directory else { return }
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
         try JSONEncoder().encode(snapshot).write(to: snapshotURL, options: .atomic)
+    }
+
+    #if DEBUG
+    private static let logger = Logger(subsystem: "com.kylemcclain.Raptorr", category: "TopShelf")
+    #endif
+
+    /// Debug builds only. Shows in Xcode's console for the app, and in Console.app (filter on
+    /// "TopShelf") for the extension, which Xcode doesn't attach to.
+    static func log(_ message: String) {
+        #if DEBUG
+        logger.notice("\(message, privacy: .public)")
+        #endif
     }
 
     /// Removes the snapshot and all artwork, so the Top Shelf falls back to the static image.
