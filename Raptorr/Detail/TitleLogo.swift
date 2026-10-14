@@ -5,7 +5,7 @@ import SwiftUI
 struct TitleLogo: View {
     let title: String
     let logoPath: String?
-    var maxWidth: CGFloat = 800
+    var maxWidth: CGFloat = TitleLogo.widthLimit
     var maxHeight: CGFloat = 220
     var font: Font = .largeTitle.bold()
     /// Leaves the box empty while the caller is still finding out whether a logo exists.
@@ -13,6 +13,10 @@ struct TitleLogo: View {
     /// Sizes to the logo (or the text) instead of filling a fixed box, for inline use such as
     /// the player's title bar, where the episode title follows right after the logo.
     var hugsContent = false
+
+    /// Logos fill their box's height unless that would make them wider than this: 40% of the
+    /// 1920pt tvOS screen (Kyle's call).
+    static let widthLimit: CGFloat = 768
 
     @Environment(\.plexClient) private var client
     @Environment(\.plexServer) private var server
