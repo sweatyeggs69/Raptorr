@@ -24,13 +24,13 @@ struct ItemDetailView: View {
                             maxHeight: 160,
                             font: .title2.bold()
                         )
-                        Text(item.title)
+                        EpisodeTitleLine(episode: item)
                             .font(.title.bold())
                     } else {
                         TitleLogo(title: item.title, logoPath: item.logoPath)
                     }
 
-                    // Same order and rating badge as Home: S#E#, year, rating, runtime.
+                    // Same order and rating badge as Home: year, rating, runtime.
                     ItemMetadataLine(item: item)
                 }
 
