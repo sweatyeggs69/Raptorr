@@ -17,13 +17,18 @@ struct ItemDetailView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 32) {
                 VStack(alignment: .leading, spacing: 12) {
-                    if item.kind == .episode, let show = item.grandparentTitle {
-                        Text(show)
-                            .font(.title3)
-                            .foregroundStyle(.secondary)
+                    if item.kind == .episode {
+                        TitleLogo(
+                            title: item.grandparentTitle ?? "",
+                            logoPath: viewModel.showLogoPath,
+                            maxHeight: 160,
+                            font: .title2.bold()
+                        )
+                        Text(item.title)
+                            .font(.title.bold())
+                    } else {
+                        TitleLogo(title: item.title, logoPath: item.logoPath)
                     }
-                    Text(item.title)
-                        .font(.largeTitle.bold())
                     Text(viewModel.metadataLine)
                         .font(.headline)
                         .foregroundStyle(.secondary)

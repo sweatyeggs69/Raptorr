@@ -9,19 +9,31 @@ struct PlayerOverlay: View {
             Spacer()
 
             VStack(alignment: .leading, spacing: 20) {
-                HStack(alignment: .firstTextBaseline, spacing: 20) {
+                HStack(alignment: .bottom, spacing: 20) {
                     Image(systemName: viewModel.isPlaying ? "pause.fill" : "play.fill")
                         .contentTransition(.symbolEffect(.replace))
                         .font(.title2)
 
-                    VStack(alignment: .leading, spacing: 4) {
-                        if let show = viewModel.item.grandparentTitle {
-                            Text(show)
-                                .font(.headline)
-                                .foregroundStyle(.secondary)
+                    VStack(alignment: .leading, spacing: 8) {
+                        if viewModel.item.kind == .episode {
+                            TitleLogo(
+                                title: viewModel.item.grandparentTitle ?? "",
+                                logoPath: viewModel.logoPath,
+                                maxWidth: 400,
+                                maxHeight: 100,
+                                font: .headline
+                            )
+                            Text(title)
+                                .font(.title2.bold())
+                        } else {
+                            TitleLogo(
+                                title: viewModel.item.title,
+                                logoPath: viewModel.logoPath,
+                                maxWidth: 500,
+                                maxHeight: 120,
+                                font: .title2.bold()
+                            )
                         }
-                        Text(title)
-                            .font(.title2.bold())
                     }
                 }
 

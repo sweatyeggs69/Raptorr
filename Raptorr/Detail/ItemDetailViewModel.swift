@@ -4,6 +4,8 @@ import Observation
 @Observable
 final class ItemDetailViewModel {
     private(set) var item: PlexMetadata
+    /// Episodes use their show's logo, which only the show's own metadata carries.
+    private(set) var showLogoPath: String?
 
     init(item: PlexMetadata) {
         self.item = item
@@ -13,6 +15,9 @@ final class ItemDetailViewModel {
     func load(server: PlexServer, client: PlexAPIClient) async {
         if let full = try? await client.metadata(server: server, ratingKey: item.ratingKey) {
             item = full
+        }
+        if item.kind == .episode, showLogoPath == nil, let showKey = item.grandparentRatingKey {
+            showLogoPath = try? await client.metadata(server: server, ratingKey: showKey)?.logoPath
         }
     }
 

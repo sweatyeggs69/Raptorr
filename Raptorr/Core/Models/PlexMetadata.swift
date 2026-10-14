@@ -34,6 +34,7 @@ nonisolated struct PlexMetadata: Decodable, Sendable, Hashable, Identifiable {
     let genre: [PlexTag]?
     let director: [PlexTag]?
     let role: [PlexTag]?
+    let image: [PlexImage]?
 
     var id: String { ratingKey }
 
@@ -47,6 +48,7 @@ nonisolated struct PlexMetadata: Decodable, Sendable, Hashable, Identifiable {
         case genre = "Genre"
         case director = "Director"
         case role = "Role"
+        case image = "Image"
     }
 
     init(
@@ -81,7 +83,8 @@ nonisolated struct PlexMetadata: Decodable, Sendable, Hashable, Identifiable {
         media: [PlexMedia]? = nil,
         genre: [PlexTag]? = nil,
         director: [PlexTag]? = nil,
-        role: [PlexTag]? = nil
+        role: [PlexTag]? = nil,
+        image: [PlexImage]? = nil
     ) {
         self.ratingKey = ratingKey
         self.key = key
@@ -115,6 +118,7 @@ nonisolated struct PlexMetadata: Decodable, Sendable, Hashable, Identifiable {
         self.genre = genre
         self.director = director
         self.role = role
+        self.image = image
     }
 }
 
@@ -133,6 +137,11 @@ extension PlexMetadata {
     }
 
     var backdropPath: String? { art ?? grandparentArt }
+
+    /// The transparent title treatment (`Image` of type `clearLogo`), when the server has one.
+    var logoPath: String? {
+        image?.first { $0.type == "clearLogo" }?.url
+    }
 
     /// "S2 · E5" style label for episodes.
     var episodeLabel: String? {

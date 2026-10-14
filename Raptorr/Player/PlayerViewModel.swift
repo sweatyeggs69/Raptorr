@@ -12,6 +12,9 @@ final class PlayerViewModel {
     private(set) var durationMs: Int
     private(set) var audioTracks: [TrackOption] = []
     private(set) var subtitleTracks: [TrackOption] = []
+    private(set) var subtitleMode: SubtitleMode = .auto
+    /// Clear logo for the overlay: the movie's own, or the show's for an episode.
+    private(set) var logoPath: String?
 
     /// VLC renders into this view; `VLCVideoSurface` puts it on screen.
     let videoView = UIView()
@@ -23,6 +26,10 @@ final class PlayerViewModel {
     private let sessionIdentifier = UUID().uuidString
     @ObservationIgnored private var hasStartedPlaying = false
     @ObservationIgnored private var hasFinished = false
+    @ObservationIgnored private var plexAudioStreams: [PlexStream] = []
+    @ObservationIgnored private var plexSubtitleStreams: [PlexStream] = []
+    @ObservationIgnored private var hasAppliedInitialTracks = false
+    @ObservationIgnored private var playingTicks = 0
 
     /// Plex asks for a timeline report on every state change and every 10 seconds otherwise.
     private let reportInterval: Duration = .seconds(10)
@@ -77,6 +84,11 @@ final class PlayerViewModel {
             item = full
             if let duration = full.duration { durationMs = duration }
         }
+        if item.kind == .episode, let showKey = item.grandparentRatingKey {
+            logoPath = try? await client.metadata(server: server, ratingKey: showKey)?.logoPath
+        } else {
+            logoPath = item.logoPath
+        }
 
         guard let part = item.primaryPart,
               let partKey = part.key,
@@ -85,6 +97,9 @@ final class PlayerViewModel {
             phase = .failed(PlexAPIError.noPlayableMedia.localizedDescription)
             return
         }
+
+        plexAudioStreams = TrackMatching.plexAudioStreams(in: part)
+        plexSubtitleStreams = TrackMatching.plexSubtitleStreams(in: part)
 
         if let offset = request.startOffsetMs, offset > 0 {
             media.addOption(":start-time=\(Double(offset) / 1000)")
@@ -151,18 +166,79 @@ final class PlayerViewModel {
     }
 
     func selectAudioTrack(id: String) {
+        hasAppliedInitialTracks = true
         player.audioTracks.first { $0.trackId == id }?.isSelectedExclusively = true
         refreshTracks()
+        // Auto follows the audio language, so a new language may need a different forced track.
+        if subtitleMode == .auto { applySubtitleMode() }
+        if let streamID = audioTracks.first(where: { $0.id == id })?.plexStreamID {
+            saveSelection(audioStreamID: streamID)
+        }
     }
 
-    /// Pass `nil` to turn subtitles off.
-    func selectSubtitleTrack(id: String?) {
-        if let id {
-            player.textTracks.first { $0.trackId == id }?.isSelectedExclusively = true
+    func selectSubtitleMode(_ mode: SubtitleMode) {
+        hasAppliedInitialTracks = true
+        subtitleMode = mode
+        applySubtitleMode()
+        switch mode {
+        case .off, .auto:
+            saveSelection(subtitleStreamID: 0)
+        case .track(let id):
+            if let streamID = subtitleTracks.first(where: { $0.id == id })?.plexStreamID {
+                saveSelection(subtitleStreamID: streamID)
+            }
+        }
+    }
+
+    private func applySubtitleMode() {
+        let selectedID: String? = switch subtitleMode {
+        case .off: nil
+        case .auto:
+            TrackMatching.forcedTrack(
+                in: subtitleTracks,
+                audioLanguage: audioTracks.first(where: \.isSelected)?.languageCode
+            )?.id
+        case .track(let id): id
+        }
+        if let selectedID, let track = player.textTracks.first(where: { $0.trackId == selectedID }) {
+            track.isSelectedExclusively = true
         } else {
             player.deselectAllTextTracks()
         }
         refreshTracks()
+    }
+
+    /// Once VLC has listed the tracks, start on the server's preferred audio and subtitle,
+    /// or Auto (forced only) when no subtitle was chosen. Gives up waiting for sidecar files
+    /// after a few seconds so the user's preference still applies to what has loaded.
+    private func applyInitialTracksIfReady() {
+        guard !hasAppliedInitialTracks, hasStartedPlaying else { return }
+        playingTicks += 1
+        let allListed = player.audioTracks.count >= plexAudioStreams.count
+            && player.textTracks.count >= plexSubtitleStreams.count
+        guard allListed || playingTicks >= 10 else { return }
+        hasAppliedInitialTracks = true
+
+        if let preferredAudio = audioTracks.first(where: \.isPlexSelected), !preferredAudio.isSelected {
+            player.audioTracks.first { $0.trackId == preferredAudio.id }?.isSelectedExclusively = true
+            refreshTracks()
+        }
+        subtitleMode = TrackMatching.initialSubtitleMode(for: subtitleTracks)
+        applySubtitleMode()
+    }
+
+    private func saveSelection(audioStreamID: Int? = nil, subtitleStreamID: Int? = nil) {
+        guard let partID = item.primaryPart?.id else { return }
+        let server = server
+        let client = client
+        Task {
+            await client.setStreamSelection(
+                server: server,
+                partId: partID,
+                audioStreamID: audioStreamID,
+                subtitleStreamID: subtitleStreamID
+            )
+        }
     }
 
     // MARK: - State sync
@@ -187,15 +263,18 @@ final class PlayerViewModel {
             if !hasStartedPlaying { phase = .loading }
         }
         refreshTracks()
+        applyInitialTracksIfReady()
     }
 
     private func refreshTracks() {
-        let audio = player.audioTracks.map {
-            TrackOption(id: $0.trackId, name: $0.trackName, isSelected: $0.isSelected)
-        }
-        let subtitles = player.textTracks.map {
-            TrackOption(id: $0.trackId, name: $0.trackName, isSelected: $0.isSelected)
-        }
+        let audio = TrackMatching.options(
+            vlc: player.audioTracks.map { TrackMatching.VLCTrack(id: $0.trackId, name: $0.trackName, isSelected: $0.isSelected) },
+            plex: plexAudioStreams
+        )
+        let subtitles = TrackMatching.options(
+            vlc: player.textTracks.map { TrackMatching.VLCTrack(id: $0.trackId, name: $0.trackName, isSelected: $0.isSelected) },
+            plex: plexSubtitleStreams
+        )
         if audio != audioTracks { audioTracks = audio }
         if subtitles != subtitleTracks { subtitleTracks = subtitles }
     }
