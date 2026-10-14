@@ -7,6 +7,8 @@ struct MediaShelf: View {
     var style: ShelfStyle = .poster
     /// Called with the card that just gained focus.
     var onFocus: ((PlexMetadata) -> Void)?
+    /// Changing this forgets the last focused card, so focus next lands on the first one.
+    var resetID = 0
 
     @FocusState private var focusedID: String?
     /// The card that last had focus, so coming back to the row returns to it.
@@ -41,6 +43,9 @@ struct MediaShelf: View {
                 return
             }
             lastFocusedID = id
+        }
+        .onChange(of: resetID) {
+            lastFocusedID = nil
         }
     }
 
