@@ -62,7 +62,7 @@ struct ShowDetailView: View {
             get: { viewModel.selectedSeason?.ratingKey },
             set: { key in
                 guard let season = viewModel.seasons.first(where: { $0.ratingKey == key }) else { return }
-                Task { await viewModel.select(season: season, server: server, client: client) }
+                viewModel.select(season: season, server: server, client: client)
             }
         )
         if viewModel.seasons.count <= 8 {
