@@ -29,9 +29,6 @@ struct ItemDetailView: View {
                     } else {
                         TitleLogo(title: item.title, logoPath: item.logoPath)
                     }
-                    Text(viewModel.metadataLine)
-                        .font(.headline)
-                        .foregroundStyle(.secondary)
                 }
 
                 HStack(spacing: 24) {
