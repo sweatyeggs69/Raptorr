@@ -10,7 +10,7 @@ struct FocusBorderModifier<S: InsettableShape>: ViewModifier {
         content
             .overlay {
                 shape
-                    .strokeBorder(.white, lineWidth: 6)
+                    .strokeBorder(.white.opacity(0.7), lineWidth: 3)
                     .opacity(isFocused ? 1 : 0)
             }
             .animation(.easeOut(duration: 0.15), value: isFocused)
