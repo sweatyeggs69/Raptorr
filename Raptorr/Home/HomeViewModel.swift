@@ -49,6 +49,34 @@ final class HomeViewModel {
         } catch {
             errorMessage = error.localizedDescription
         }
+        await prefetchArtwork(server: server, client: client)
+    }
+
+    /// Cards decoded into memory per row up front; the rest only go to disk, since every
+    /// card decoded at once would overrun the memory cache.
+    private static let decodedCardsPerRow = 10
+
+    /// Downloads every Home card's artwork and backdrop ahead of time, so moving quickly along
+    /// a row shows images from cache instead of waiting on the server.
+    private func prefetchArtwork(server: PlexServer, client: PlexAPIClient) async {
+        let loader = ImageLoader.shared
+        var decoded: [URL] = []
+        var stored: [URL] = []
+        var backdrops: [URL] = []
+        for row in rows {
+            for (index, item) in row.items.enumerated() {
+                let artwork = row.style.artwork(for: item)
+                if let url = client.artworkURL(server: server, path: artwork.path, width: artwork.width, height: artwork.height) {
+                    if index < Self.decodedCardsPerRow { decoded.append(url) } else { stored.append(url) }
+                }
+                if let url = client.artworkURL(server: server, path: item.backdropPath, width: 1920, height: 1080) {
+                    backdrops.append(url)
+                }
+            }
+        }
+        await loader.prefetch(decoded, decode: true)
+        await loader.prefetch(stored, decode: false)
+        await loader.prefetch(backdrops, decode: false)
     }
 
     private func load(sections: [LibrarySection], server: PlexServer, client: PlexAPIClient, from source: DataSource) async throws {
