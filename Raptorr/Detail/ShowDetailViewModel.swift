@@ -9,6 +9,8 @@ final class ShowDetailViewModel {
     private(set) var episodes: [PlexMetadata] = []
     private(set) var isLoadingEpisodes = false
     private(set) var errorMessage: String?
+    /// Similar shows, for the "Related" row.
+    private(set) var related: [PlexMetadata] = []
 
     private let initialItem: PlexMetadata
     @ObservationIgnored private var episodesTask: Task<Void, Never>?
@@ -38,7 +40,20 @@ final class ShowDetailViewModel {
             errorMessage = error.localizedDescription
             return
         }
+        await loadRelated(server: server, client: client)
         await prefetch(server: server, client: client)
+    }
+
+    var cast: [PlexTag] { show?.role ?? [] }
+
+    private func loadRelated(server: PlexServer, client: PlexAPIClient) async {
+        let showKey = show?.ratingKey ?? initialItem.ratingKey
+        if related.isEmpty, let cached = try? await client.similar(server: server, ratingKey: showKey, from: .cache) {
+            related = cached
+        }
+        if let loaded = try? await client.similar(server: server, ratingKey: showKey), loaded != related {
+            related = loaded
+        }
     }
 
     /// Loads the rest of the show ahead of time: the current season's stills into memory,
