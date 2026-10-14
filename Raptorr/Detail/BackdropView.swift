@@ -11,7 +11,7 @@ struct BackdropView: View {
     var body: some View {
         ZStack {
             Color.black
-            CrossfadeImage(url: client.artworkURL(server: server, path: path, width: 1920, height: 1080)) { _ in
+            CrossfadeImage(url: client.artworkURL(server: server, path: path, width: 1920, height: 1080), loader: .backdrops) { _ in
                 Color.clear
             }
             LinearGradient(
