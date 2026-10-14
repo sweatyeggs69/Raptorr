@@ -4,25 +4,25 @@ import SwiftUI
 struct FocusedItemHeader: View {
     let item: PlexMetadata
     let logoPath: String?
-    var isLoadingLogo = false
     /// Continue Watching cards use the `continueWatchingLine` order (S#E#, year, rating, runtime).
     var isContinueWatching = false
 
     var body: some View {
-        // Every slot has a fixed size (the logo box, one line each for the episode title and
-        // metadata, three lines of description), so moving between items never shifts anything.
+        // Fixed slots: the logo box, the episode title line (episodes only), one metadata line
+        // and three lines of description.
         VStack(alignment: .leading, spacing: HeaderLayout.spacing) {
             TitleLogo(
                 title: item.kind == .episode ? (item.grandparentTitle ?? item.title) : item.title,
                 logoPath: logoPath,
                 maxWidth: HeaderLayout.logoWidth,
-                maxHeight: HeaderLayout.logoHeight,
-                isLoading: isLoadingLogo
+                maxHeight: HeaderLayout.logoHeight
             )
 
-            // Always present, so the logo never moves when focus goes between a movie and an
-            // episode; a moving logo slid across the rows instead of crossfading.
-            episodeTitle(item.kind == .episode ? item.title : " ")
+            // Movies have no episode title, so the line is left out. The whole header
+            // crossfades between items, so the logo moving with it doesn't show.
+            if item.kind == .episode {
+                episodeTitle(item.title)
+            }
 
             // The placeholder keeps the line's height when an item has no metadata.
             Text(" ")

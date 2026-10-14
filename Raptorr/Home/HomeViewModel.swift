@@ -8,18 +8,15 @@ final class HomeViewModel {
     private(set) var isLoading = false
     private(set) var errorMessage: String?
 
-    /// The card the user is on, described in the header above the rows.
-    private(set) var focusedItem: PlexMetadata?
-    private(set) var focusedLogoPath: String?
-    /// True while the focused item's logo is being looked up, so the header can leave the
-    /// logo box empty instead of flashing the text title first.
-    private(set) var isLoadingLogo = false
+    /// The focused card as the header shows it. Updates only after the card's logo and
+    /// backdrop have loaded, so the header crossfades as one unit.
+    private(set) var header: HomeHeader?
     /// The row holding the focused card, kept at the bottom of the screen.
     private(set) var activeRowID: String?
 
     /// Logo lookups by the rating key that carries the logo; `nil` means the item has none.
     @ObservationIgnored private var logoCache: [String: String?] = [:]
-    @ObservationIgnored private var logoTask: Task<Void, Never>?
+    @ObservationIgnored private var headerTask: Task<Void, Never>?
 
     var isEmpty: Bool { continueWatching.isEmpty && shelves.isEmpty }
 
@@ -89,41 +86,74 @@ final class HomeViewModel {
         let items = continueHubs.flatMap(\.items)
         if items != continueWatching { continueWatching = items }
         if result != shelves { shelves = result }
-        if focusedItem == nil, let row = rows.first, let first = row.items.first {
+        if activeRowID == nil, let row = rows.first, let first = row.items.first {
             focus(first, inRow: row.id, server: server, client: client)
         }
     }
 
-    /// Shows the item in the header and fetches its logo, which list responses leave out.
+    /// Shows the item in the header once its logo (which list responses leave out) and
+    /// backdrop are ready, so text, logo and artwork change together.
     func focus(_ item: PlexMetadata, inRow rowID: String, server: PlexServer, client: PlexAPIClient) {
-        focusedItem = item
         activeRowID = rowID
+        let isContinueWatching = rowID == Self.continueWatchingRowID
         let logoKey = item.logoSourceRatingKey
-        logoTask?.cancel()
-        if let cached = logoCache[logoKey] {
-            focusedLogoPath = cached
-            isLoadingLogo = false
-            return
-        }
-        focusedLogoPath = nil
-        isLoadingLogo = true
-        logoTask = Task {
-            // Skip lookups for cards the user only passes over.
-            try? await Task.sleep(for: .milliseconds(250))
-            guard !Task.isCancelled else { return }
-            let cachedItem = try? await client.metadata(server: server, ratingKey: logoKey, from: .cache)
+        headerTask?.cancel()
+        headerTask = Task {
             let logo: String?
-            if let cachedItem {
-                logo = cachedItem.logoPath
+            if let cached = logoCache[logoKey] {
+                logo = cached
             } else {
-                logo = try? await client.metadata(server: server, ratingKey: logoKey)?.logoPath
+                // Skip lookups for cards the user only passes over.
+                try? await Task.sleep(for: .milliseconds(250))
+                guard !Task.isCancelled else { return }
+                if let cachedItem = try? await client.metadata(server: server, ratingKey: logoKey, from: .cache) {
+                    logo = cachedItem.logoPath
+                } else {
+                    logo = try? await client.metadata(server: server, ratingKey: logoKey)?.logoPath
+                }
+                guard !Task.isCancelled else { return }
+                logoCache[logoKey] = logo
             }
+
+            // Same URLs as `TitleLogo` and `BackdropView`, so both draw straight from memory.
+            let logoURL = client.logoURL(
+                server: server,
+                path: logo,
+                width: Int(HeaderLayout.logoWidth * 2),
+                height: Int(HeaderLayout.logoHeight * 2)
+            )
+            let backdropURL = client.artworkURL(server: server, path: item.backdropPath, width: 1920, height: 1080)
+            await Self.preload(logoURL: logoURL, backdropURL: backdropURL)
             guard !Task.isCancelled else { return }
-            logoCache[logoKey] = logo
-            if focusedItem?.logoSourceRatingKey == logoKey {
-                focusedLogoPath = logo
-                isLoadingLogo = false
+            header = HomeHeader(item: item, logoPath: logo, isContinueWatching: isContinueWatching)
+        }
+    }
+
+    /// Longest the header waits on images before switching anyway, on a slow connection.
+    private static let preloadTimeout: Duration = .milliseconds(1500)
+
+    /// Waits until both images are in memory, or the timeout passes.
+    private static func preload(logoURL: URL?, backdropURL: URL?) async {
+        let timeout = preloadTimeout
+        await withTaskGroup(of: Bool.self) { group in
+            group.addTask {
+                if let logoURL { _ = await ImageLoader.shared.image(for: logoURL) }
+                return true
             }
+            group.addTask {
+                if let backdropURL { _ = await ImageLoader.backdrops.image(for: backdropURL) }
+                return true
+            }
+            group.addTask {
+                try? await Task.sleep(for: timeout)
+                return false
+            }
+            var loaded = 0
+            while let finished = await group.next(), finished {
+                loaded += 1
+                if loaded == 2 { break }
+            }
+            group.cancelAll()
         }
     }
 
