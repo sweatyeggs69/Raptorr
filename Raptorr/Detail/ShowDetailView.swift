@@ -16,12 +16,7 @@ struct ShowDetailView: View {
 
         ScrollView {
             VStack(alignment: .leading, spacing: 40) {
-                VStack(alignment: .leading, spacing: 12) {
-                    TitleLogo(title: show.title, logoPath: show.logoPath)
-                    Text(viewModel.metadataLine)
-                        .font(.headline)
-                        .foregroundStyle(.secondary)
-                }
+                TitleLogo(title: show.title, logoPath: show.logoPath)
 
                 if let next = viewModel.nextEpisode {
                     Button {
@@ -35,6 +30,12 @@ struct ShowDetailView: View {
                     Text(summary)
                         .frame(maxWidth: 1200, alignment: .leading)
                         .lineLimit(4)
+                }
+
+                if let details = viewModel.detailsLine {
+                    Text(details)
+                        .font(.callout)
+                        .foregroundStyle(.secondary)
                 }
 
                 if viewModel.seasons.count > 1 {

@@ -50,14 +50,14 @@ final class ItemDetailViewModel {
         }
     }
 
-    var metadataLine: String { item.infoLine }
-
     var cast: [PlexTag] { item.role ?? [] }
 
     var creditsLine: String? {
         let genres = (item.genre ?? []).compactMap(\.tag).prefix(3)
         let directors = (item.director ?? []).compactMap(\.tag).prefix(2)
         var lines: [String] = []
+        // Year, rating, runtime and resolution lead the line (with S#E# for episodes).
+        if !item.infoLine.isEmpty { lines.append(item.infoLine) }
         if !genres.isEmpty { lines.append(genres.joined(separator: ", ")) }
         if !directors.isEmpty { lines.append("Directed by " + directors.joined(separator: ", ")) }
         return lines.isEmpty ? nil : lines.joined(separator: "  ·  ")

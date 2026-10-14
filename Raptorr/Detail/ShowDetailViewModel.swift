@@ -154,13 +154,14 @@ final class ShowDetailViewModel {
         }
     }
 
-    var metadataLine: String {
+    /// Year, rating and genres on one line under the description.
+    var detailsLine: String? {
         let item = displayItem
         var parts: [String] = []
         if let year = item.year { parts.append(String(year)) }
         if let contentRating = item.contentRating { parts.append(contentRating) }
-        if !seasons.isEmpty { parts.append(seasons.count == 1 ? "1 Season" : "\(seasons.count) Seasons") }
-        if let studio = item.studio { parts.append(studio) }
-        return parts.joined(separator: " · ")
+        let genres = (item.genre ?? []).compactMap(\.tag).prefix(3)
+        if !genres.isEmpty { parts.append(genres.joined(separator: ", ")) }
+        return parts.isEmpty ? nil : parts.joined(separator: "  ·  ")
     }
 }
