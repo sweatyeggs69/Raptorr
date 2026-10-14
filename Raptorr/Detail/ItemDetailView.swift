@@ -29,6 +29,9 @@ struct ItemDetailView: View {
                     } else {
                         TitleLogo(title: item.title, logoPath: item.logoPath)
                     }
+
+                    // Same order and rating badge as Home: S#E#, year, rating, runtime.
+                    ItemMetadataLine(item: item)
                 }
 
                 HStack(spacing: 24) {
@@ -60,11 +63,6 @@ struct ItemDetailView: View {
                         .contentTransition(.symbolEffect(.replace))
                     }
 
-                    if let duration = item.durationText {
-                        Text(duration)
-                            .font(.headline)
-                            .foregroundStyle(.secondary)
-                    }
                 }
                 .fullWidthFocusSection()
 
