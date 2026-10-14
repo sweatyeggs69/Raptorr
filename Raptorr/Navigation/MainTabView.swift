@@ -20,6 +20,49 @@ struct MainTabView: View {
     var body: some View {
         @Bindable var playback = playback
 
+        tabs
+            // Before the `.environment` modifiers below, so Settings gets them too. Back closes it.
+            .fullScreenCover(isPresented: $isShowingSettings) {
+                SettingsView()
+            }
+            .environment(router)
+            .environment(activity)
+            .environment(\.plexServer, activeServer)
+            // Reloads when the connection moves between local, remote and relay.
+            .task(id: activeServer.uri) {
+                await viewModel.loadSections(server: activeServer, client: client)
+            }
+            // Caches every title's details in the background so detail pages open instantly.
+            // The sync button re-runs it on demand, ignoring the schedule.
+            .task(id: syncTaskID, priority: .background) {
+                await sync()
+            }
+            // Every library's posters, fetched while the user is still on Home so the Movies and
+            // TV Shows grids open with their artwork ready.
+            .task(id: sectionsTaskID, priority: .background) {
+                await cachePosters()
+            }
+            .alert("Setting Up Your Library", isPresented: $isShowingFirstSyncNotice) {
+                Button("OK", role: .cancel) {}
+            } message: {
+                Text(firstSyncMessage)
+            }
+            .task {
+                await viewModel.keepConnectionFresh(connection: connection, client: client, token: authStore.token)
+            }
+            .onChange(of: scenePhase) { _, phase in
+                guard phase == .active else { return }
+                Task { await connection.refreshConnection(token: authStore.token, client: client) }
+            }
+            .fullScreenCover(item: $playback.request) { request in
+                PlayerView(request: request, server: activeServer, client: client)
+                    // The cover sits outside the `.environment` above, so it needs the server
+                    // again; without it the title logo asked the preview server and never loaded.
+                    .environment(\.plexServer, activeServer)
+            }
+    }
+
+    private var tabs: some View {
         // Top tab bar like the Apple TV app: Home, one tab per library, and Search. Sync and
         // Settings sit outside it, on either side.
         TabView(selection: $router.selection) {
@@ -46,11 +89,7 @@ struct MainTabView: View {
             }
         }
         .tabViewStyle(.tabBarOnly)
-        // Only handled with focus on the tab bar of a tab other than Home; otherwise the
-        // system's Back applies (content to tab bar, Home's tab bar leaves the app).
-        .onExitCommand(perform: router.isContentFocused || router.selection == .home ? nil : {
-            router.selection = .home
-        })
+        .onExitCommand(perform: exitAction)
         .overlay {
             TopBarAccessories(isSyncing: activity.isRunning) {
                 syncRequests += 1
@@ -58,64 +97,53 @@ struct MainTabView: View {
                 isShowingSettings = true
             }
         }
-        // Before the `.environment` modifiers below, so Settings gets them too. Back closes it.
-        .fullScreenCover(isPresented: $isShowingSettings) {
-            SettingsView()
-        }
-        .environment(router)
-        .environment(activity)
-        .environment(\.plexServer, activeServer)
-        // Reloads when the connection moves between local, remote and relay.
-        .task(id: activeServer.uri) {
-            await viewModel.loadSections(server: activeServer, client: client)
-        }
-        // Caches every title's details in the background so detail pages open instantly.
-        // The sync button re-runs it on demand, ignoring the schedule.
-        .task(id: activeServer.machineIdentifier + "|" + viewModel.sections.map(\.key).joined(separator: ",") + "|\(syncRequests)", priority: .background) {
-            let force = syncRequests > 0
-            guard !viewModel.sections.isEmpty, force || LibraryPrefetcher.isDue(for: activeServer) else { return }
-            if !LibraryPrefetcher.hasRun(for: activeServer) {
-                isShowingFirstSyncNotice = true
-            }
-            let finished = await activity.track {
-                await LibraryPrefetcher(client: client).run(sections: viewModel.sections, server: activeServer, force: force)
-            }
-            if finished { activity.libraryDidChange() }
-        }
-        // Every library's posters, fetched while the user is still on Home so the Movies and
-        // TV Shows grids open with their artwork ready.
-        .task(id: activeServer.machineIdentifier + "|" + viewModel.sections.map(\.key).joined(separator: ","), priority: .background) {
-            guard !viewModel.sections.isEmpty else { return }
-            await activity.track {
-                await LibraryPrefetcher(client: client).cachePosters(
-                    sections: viewModel.sections,
-                    server: activeServer,
-                    size: LibraryView.posterSize
-                )
-            }
-        }
-        .alert("Setting Up Your Library", isPresented: $isShowingFirstSyncNotice) {
-            Button("OK", role: .cancel) {}
-        } message: {
-            Text("Raptorr is downloading your library from \(activeServer.name) so it opens quickly from now on. This first sync can take a while. You can keep browsing; the spinner in the top right shows it's still working.")
-        }
-        .task {
-            await viewModel.keepConnectionFresh(connection: connection, client: client, token: authStore.token)
-        }
-        .onChange(of: scenePhase) { _, phase in
-            guard phase == .active else { return }
-            Task { await connection.refreshConnection(token: authStore.token, client: client) }
-        }
-        .fullScreenCover(item: $playback.request) { request in
-            PlayerView(request: request, server: activeServer, client: client)
-                // The cover sits outside the `.environment` above, so it needs the server
-                // again; without it the title logo asked the preview server and never loaded.
-                .environment(\.plexServer, activeServer)
-        }
     }
 
     private var activeServer: PlexServer {
         connection.currentServer ?? server
+    }
+
+    /// Only set with focus on the tab bar of a tab other than Home; otherwise the system's
+    /// Back applies (content to tab bar, Home's tab bar leaves the app).
+    private var exitAction: (() -> Void)? {
+        if router.isContentFocused || router.selection == .home { return nil }
+        return { router.selection = .home }
+    }
+
+    private var sectionsTaskID: String {
+        let keys = viewModel.sections.map(\.key).joined(separator: ",")
+        return "\(activeServer.machineIdentifier)|\(keys)"
+    }
+
+    private var syncTaskID: String {
+        "\(sectionsTaskID)|\(syncRequests)"
+    }
+
+    private var firstSyncMessage: String {
+        "Raptorr is downloading your library from \(activeServer.name) so it opens quickly from now on. This first sync can take a while. You can keep browsing; the sync button in the top left shows it's still working."
+    }
+
+    private func sync() async {
+        let force = syncRequests > 0
+        guard !viewModel.sections.isEmpty, force || LibraryPrefetcher.isDue(for: activeServer) else { return }
+        if !LibraryPrefetcher.hasRun(for: activeServer) {
+            isShowingFirstSyncNotice = true
+        }
+        let sections = viewModel.sections
+        let server = activeServer
+        let finished = await activity.track {
+            await LibraryPrefetcher(client: client).run(sections: sections, server: server, force: force)
+        }
+        if finished { activity.libraryDidChange() }
+    }
+
+    private func cachePosters() async {
+        guard !viewModel.sections.isEmpty else { return }
+        let sections = viewModel.sections
+        let server = activeServer
+        await activity.track {
+            await LibraryPrefetcher(client: client).cachePosters(sections: sections, server: server, size: LibraryView.posterSize)
+        }
     }
 }
 
