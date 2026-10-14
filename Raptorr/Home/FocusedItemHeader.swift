@@ -5,7 +5,7 @@ struct FocusedItemHeader: View {
     let item: PlexMetadata
     let logoPath: String?
     var isLoadingLogo = false
-    /// Continue Watching cards show S#E# after the episode title rather than in the metadata line.
+    /// Continue Watching cards use `continueWatchingLine` (S#E#, year, rating, runtime).
     var isContinueWatching = false
 
     var body: some View {
@@ -20,16 +20,9 @@ struct FocusedItemHeader: View {
                 isLoading: isLoadingLogo
             )
 
-            HStack(alignment: .firstTextBaseline, spacing: 16) {
-                Text(item.kind == .episode ? item.title : " ")
-                    .font(.title3.bold())
-                    .lineLimit(1)
-                if isContinueWatching, let label = item.shortEpisodeLabel {
-                    Text(label)
-                        .font(.headline)
-                        .foregroundStyle(.secondary)
-                }
-            }
+            Text(item.kind == .episode ? item.title : " ")
+                .font(.title3.bold())
+                .lineLimit(1)
 
             Text(metadataLine.isEmpty ? " " : metadataLine)
                 .font(.headline)
@@ -44,7 +37,7 @@ struct FocusedItemHeader: View {
     }
 
     private var metadataLine: String {
-        isContinueWatching && item.shortEpisodeLabel != nil ? item.detailsLine : item.infoLine
+        isContinueWatching ? item.continueWatchingLine : item.infoLine
     }
 }
 

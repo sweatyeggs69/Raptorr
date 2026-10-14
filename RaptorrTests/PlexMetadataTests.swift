@@ -17,7 +17,23 @@ struct PlexMetadataTests {
         #expect(episode.shortEpisodeLabel == "S2E3")
         #expect(episode.infoLine == "S2 · E3")
         #expect(episode.detailsLine.isEmpty)
+        #expect(episode.continueWatchingLine == "S2E3")
         #expect(episode.posterPath == "/show-poster")
+    }
+
+    @Test func continueWatchingLineOrder() {
+        let episode = PlexMetadata(
+            ratingKey: "1",
+            type: "episode",
+            title: "Pilot",
+            year: 2024,
+            index: 3,
+            parentIndex: 2,
+            duration: 2_700_000,
+            contentRating: "TV-14"
+        )
+
+        #expect(episode.continueWatchingLine == "S2E3 · 2024 · TV-14 · 45m")
     }
 
     @Test func showIsWatchedOnlyWhenEveryEpisodeIs() {
