@@ -62,6 +62,48 @@ nonisolated struct LibraryPrefetcher: Sendable {
         return true
     }
 
+    /// Downloads every library's posters ahead of time, so the Movies and TV Shows grids
+    /// open with artwork in place. Each library's first screens are decoded into memory
+    /// first, then everything else goes to disk. Runs on every launch: images already on
+    /// disk are skipped.
+    func cachePosters(sections: [LibrarySection], server: PlexServer, size: CGSize) async {
+        let loader = ImageLoader.shared
+        var lists: [[URL]] = []
+        for section in sections {
+            guard !Task.isCancelled else { return }
+            let items = await cachedOrFetchedItems(in: section, server: server)
+            lists.append(items.compactMap {
+                client.artworkURL(server: server, path: $0.posterPath, width: Int(size.width), height: Int(size.height))
+            })
+        }
+        for urls in lists {
+            await loader.prefetch(Array(urls.prefix(Self.decodedPostersPerLibrary)), decode: true)
+        }
+        for urls in lists {
+            guard !Task.isCancelled else { return }
+            await loader.prefetch(Array(urls.dropFirst(Self.decodedPostersPerLibrary)), decode: false)
+        }
+    }
+
+    /// Two screens of the grid; decoding more for every library would crowd out Home's cards.
+    private static let decodedPostersPerLibrary = 24
+
+    /// The library's titles from the response cache, or from the server when nothing is cached.
+    private func cachedOrFetchedItems(in section: LibrarySection, server: PlexServer) async -> [PlexMetadata] {
+        var items: [PlexMetadata] = []
+        while let page = try? await client.sectionItems(
+            server: server,
+            section: section,
+            start: items.count,
+            size: Self.pageSize,
+            from: .cache
+        ) {
+            items += page.items
+            if page.items.count < Self.pageSize { break }
+        }
+        return items.isEmpty ? await allItems(in: section, server: server) : items
+    }
+
     private func allItems(in section: LibrarySection, server: PlexServer) async -> [PlexMetadata] {
         var items: [PlexMetadata] = []
         while !Task.isCancelled,
