@@ -13,7 +13,10 @@ nonisolated struct TopShelfPublisher: Sendable {
     private static let imageSize = (width: 1280, height: 720)
 
     func publish(_ items: [PlexMetadata], server: PlexServer) async {
-        guard let imagesDirectory = TopShelfStore.imagesDirectory else { return }
+        guard let imagesDirectory = TopShelfStore.imagesDirectory else {
+            TopShelfStore.log("no App Group container; check the App Groups capability on the Raptorr target")
+            return
+        }
         try? FileManager.default.createDirectory(at: imagesDirectory, withIntermediateDirectories: true)
 
         var shelfItems: [TopShelfItem] = []
@@ -35,15 +38,17 @@ nonisolated struct TopShelfPublisher: Sendable {
 
         let snapshot = TopShelfSnapshot(items: shelfItems)
         removeImages(notIn: snapshot, from: imagesDirectory)
-        guard snapshot != TopShelfStore.read() else { return }
-        do {
-            try TopShelfStore.write(snapshot)
-        } catch {
-            #if DEBUG
-            print("[TopShelf] couldn't save snapshot: \(error)")
-            #endif
-            return
+        if snapshot != TopShelfStore.read() {
+            do {
+                try TopShelfStore.write(snapshot)
+            } catch {
+                TopShelfStore.log("couldn't save snapshot: \(error)")
+                return
+            }
         }
+        let imageCount = shelfItems.filter { $0.imageFileName != nil }.count
+        TopShelfStore.log("saved \(shelfItems.count) items (\(imageCount) with artwork)")
+        // Asked every time, not only on a change, in case the system missed an earlier one.
         await Self.reloadTopShelf()
     }
 
