@@ -30,14 +30,11 @@ struct EpisodeRow: View {
                 }
                 .overlay(alignment: .topTrailing) {
                     if episode.isWatched {
-                        Image(systemName: "checkmark.circle.fill")
-                            .symbolRenderingMode(.palette)
-                            .foregroundStyle(.white, .tint)
-                            .font(.title3)
-                            .padding(12)
+                        WatchedBadge()
                     }
                 }
                 .clipShape(.rect(cornerRadius: 12))
+                .focusBorder(.rect(cornerRadius: 12))
 
                 VStack(alignment: .leading, spacing: 8) {
                     Text(episodeNumber)
@@ -64,7 +61,7 @@ struct EpisodeRow: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
         }
-        .buttonStyle(.borderless)
+        .buttonStyle(.focusBorder)
     }
 
     private var episodeNumber: String {

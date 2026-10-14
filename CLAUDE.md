@@ -12,7 +12,7 @@
 
 Use Apple's TV app on tvOS as the reference for layout and behavior.
 
-- Navigation is the top tab bar (`.tabViewStyle(.tabBarOnly)`): Home, one tab per library, Settings, and Search on the right.
+- Navigation is the top tab bar (`.tabViewStyle(.tabBarOnly)`): Home, one tab per library, Settings, and Search on the right. Tab pages have no large navigation title.
 - Home shows the focused card's backdrop, logo, metadata and description above the rows; Continue Watching uses 16:9 cards. The active row is locked to the bottom of the screen and rows above it scroll out of view, so the header never pushes it around.
 - The Home header's title area uses fixed slots (`HeaderLayout`): a 640x180 logo box, one episode title line, one metadata line and three lines of description.
 - Artwork, backdrops and logos load through `CrossfadeImage`, which keeps the old image until the new one loads and crossfades between them, and loads through `ImageLoader`: decoded images in `ImageMemoryCache`, then downloaded files in `ImageDiskCache` (Caches, keyed by the request without host or token), then the server. Show pages prefetch every season's episodes and stills on open. Don't use `AsyncImage` for artwork.
@@ -27,7 +27,8 @@ Before implementing any feature, control, layout, or behavior, check whether tvO
 
 - Navigation: `NavigationStack` and `TabView` with `Tab` / `Tab(role: .search)`. Never custom tab bars.
 - Tab bars, toolbars and navigation bars get Liquid Glass automatically. Only use `.glassEffect` on custom views the system doesn't style (e.g. the player info overlay).
-- Focus and lift effects: use `.buttonStyle(.borderless)` / `.card` and the focus engine, never custom focus drawing.
+- Focus: cards (posters, 16:9 cards, episode rows, cast) use `.buttonStyle(.focusBorder)` with `.focusBorder(shape)` on their artwork, a white border instead of the system zoom (Kyle's call). Other controls keep the system focus effects.
+- Watched items show `WatchedBadge` (a plain checkmark), not a filled circle.
 - Remote input: `.onPlayPauseCommand`, `.onMoveCommand`, `.onExitCommand`.
 - Search: `Tab(role: .search)` with `.searchable`.
 - Sheets, covers and alerts: system presentations. Confirmations use `.alert` with a destructive action and explicit cancel, never `.confirmationDialog`.

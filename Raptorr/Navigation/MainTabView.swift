@@ -21,8 +21,14 @@ struct MainTabView: View {
             }
 
             ForEach(viewModel.sections) { section in
-                Tab(section.title, systemImage: section.type.systemImage, value: AppTab.library(key: section.key)) {
+                Tab(value: AppTab.library(key: section.key)) {
                     LibraryView(section: section)
+                } label: {
+                    // Plain monochrome so the icon turns black with its title when selected,
+                    // like the other tabs; the "tv" symbol otherwise keeps a lighter layer.
+                    Label(section.title, systemImage: section.type.systemImage)
+                        .symbolRenderingMode(.monochrome)
+                        .symbolVariant(.none)
                 }
             }
 

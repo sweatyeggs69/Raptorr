@@ -19,6 +19,7 @@ struct CastCard: View {
                 )
                 .frame(width: Self.portraitSize, height: Self.portraitSize)
                 .clipShape(.circle)
+                .focusBorder(.circle)
 
                 VStack(spacing: 4) {
                     Text(person.tag ?? "")
@@ -33,7 +34,7 @@ struct CastCard: View {
                 .frame(width: Self.portraitSize + 40)
             }
         }
-        .buttonStyle(.borderless)
+        .buttonStyle(.focusBorder)
     }
 }
 

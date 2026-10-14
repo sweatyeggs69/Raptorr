@@ -23,6 +23,7 @@ struct LandscapeCard: View {
                     }
                 }
                 .clipShape(.rect(cornerRadius: 12))
+                .focusBorder(.rect(cornerRadius: 12))
                 .onFocusGained(onFocus)
 
                 Text(item.kind == .episode ? (item.grandparentTitle ?? item.title) : item.title)
@@ -37,7 +38,7 @@ struct LandscapeCard: View {
             }
             .frame(width: width, alignment: .leading)
         }
-        .buttonStyle(.borderless)
+        .buttonStyle(.focusBorder)
     }
 
     private var subtitle: String {
