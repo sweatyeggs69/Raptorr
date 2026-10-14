@@ -10,9 +10,6 @@ struct TitleLogo: View {
     var font: Font = .largeTitle.bold()
     /// Leaves the box empty while the caller is still finding out whether a logo exists.
     var isLoading = false
-    /// When set, the box may shrink down to this height if its container is short on room,
-    /// instead of pushing past it. Its height still depends only on the room, not the logo.
-    var minHeight: CGFloat?
 
     @Environment(\.plexClient) private var client
     @Environment(\.plexServer) private var server
@@ -21,8 +18,7 @@ struct TitleLogo: View {
         // Logo, fallback text and loading state all fill the same box, anchored bottom left,
         // so switching between titles never changes the layout around it.
         content
-            .frame(width: maxWidth, alignment: .bottomLeading)
-            .frame(minHeight: minHeight ?? maxHeight, maxHeight: maxHeight, alignment: .bottomLeading)
+            .frame(width: maxWidth, height: maxHeight, alignment: .bottomLeading)
             .animation(.easeInOut(duration: 0.35), value: logoPath)
             .animation(.easeInOut(duration: 0.35), value: isLoading)
     }
