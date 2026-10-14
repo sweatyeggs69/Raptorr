@@ -8,6 +8,7 @@ struct HomeView: View {
     @Environment(\.plexClient) private var client
     @Environment(\.plexServer) private var server
     @Environment(TabRouter.self) private var router
+    @Environment(BackgroundActivity.self) private var activity
     @State private var viewModel = HomeViewModel()
     @State private var path = NavigationPath()
     @State private var snapTask: Task<Void, Never>?
@@ -18,8 +19,11 @@ struct HomeView: View {
                 .metadataDestinations()
         }
         // Reloads when the libraries change or the connection moves (local, remote, relay).
-        .task(id: server.uri + "|" + sections.map(\.key).joined(separator: ",")) {
-            await viewModel.load(sections: sections, server: server, client: client)
+        // Also reloads when a background sync finishes, picking up added or changed titles.
+        .task(id: server.uri + "|" + sections.map(\.key).joined(separator: ",") + "|\(activity.libraryRevision)") {
+            await activity.track {
+                await viewModel.load(sections: sections, server: server, client: client)
+            }
         }
     }
 
@@ -155,4 +159,5 @@ struct HomeView: View {
 #Preview {
     HomeView(sections: [])
         .environment(TabRouter())
+        .environment(BackgroundActivity())
 }

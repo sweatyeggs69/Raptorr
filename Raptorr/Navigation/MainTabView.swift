@@ -10,6 +10,8 @@ struct MainTabView: View {
     @Environment(PlaybackCoordinator.self) private var playback
     @State private var viewModel = MainTabViewModel()
     @State private var router = TabRouter()
+    @State private var activity = BackgroundActivity()
+    @State private var isShowingFirstSyncNotice = false
     @AppStorage(InterfaceSettings.showsTabIconsKey) private var showsTabIcons = InterfaceSettings.showsTabIconsDefault
 
     var body: some View {
@@ -46,7 +48,11 @@ struct MainTabView: View {
             }
         }
         .tabViewStyle(.tabBarOnly)
+        .overlay(alignment: .topTrailing) {
+            BackgroundActivityIndicator(isRunning: activity.isRunning)
+        }
         .environment(router)
+        .environment(activity)
         .environment(\.plexServer, activeServer)
         // Reloads when the connection moves between local, remote and relay.
         .task(id: activeServer.uri) {
@@ -54,8 +60,19 @@ struct MainTabView: View {
         }
         // Caches every title's details in the background so detail pages open instantly.
         .task(id: activeServer.machineIdentifier + "|" + viewModel.sections.map(\.key).joined(separator: ","), priority: .background) {
-            guard !viewModel.sections.isEmpty else { return }
-            await LibraryPrefetcher(client: client).run(sections: viewModel.sections, server: activeServer)
+            guard !viewModel.sections.isEmpty, LibraryPrefetcher.isDue(for: activeServer) else { return }
+            if !LibraryPrefetcher.hasRun(for: activeServer) {
+                isShowingFirstSyncNotice = true
+            }
+            let finished = await activity.track {
+                await LibraryPrefetcher(client: client).run(sections: viewModel.sections, server: activeServer)
+            }
+            if finished { activity.libraryDidChange() }
+        }
+        .alert("Setting Up Your Library", isPresented: $isShowingFirstSyncNotice) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text("Raptorr is downloading your library from \(activeServer.name) so it opens quickly from now on. This first sync can take a while. You can keep browsing; the spinner in the top right shows it's still working.")
         }
         .task {
             await viewModel.keepConnectionFresh(connection: connection, client: client, token: authStore.token)

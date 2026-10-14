@@ -11,6 +11,7 @@ struct LibraryView: View {
     @FocusState private var focusedID: String?
     @State private var jumpTask: Task<Void, Never>?
     @Environment(TabRouter.self) private var router
+    @Environment(BackgroundActivity.self) private var activity
 
     /// Six posters across; at 230pt they fit beside the letter bar in the 1080p safe area.
     private let columns = Array(repeating: GridItem(.flexible(), spacing: 40, alignment: .top), count: 6)
@@ -28,9 +29,12 @@ struct LibraryView: View {
         // Reloads when the connection moves between local, remote and relay.
         // While the library is on screen: the whole library and every poster, so nothing waits
         // on the server while scrolling or jumping to a letter.
-        .task(id: server.uri) {
-            await viewModel.load(section: section, server: server, client: client)
-            await viewModel.loadEverything(section: section, posterSize: posterSize, server: server, client: client)
+        // Also reloads when a background sync finishes, picking up added or changed titles.
+        .task(id: "\(server.uri)|\(activity.libraryRevision)") {
+            await activity.track {
+                await viewModel.load(section: section, server: server, client: client)
+                await viewModel.loadEverything(section: section, posterSize: posterSize, server: server, client: client)
+            }
         }
         .task(id: server.uri) {
             await viewModel.loadLetters(section: section, server: server, client: client)
@@ -105,4 +109,5 @@ struct LibraryView: View {
 #Preview {
     LibraryView(section: LibrarySection(key: "1", type: .movie, title: "Movies"))
         .environment(TabRouter())
+        .environment(BackgroundActivity())
 }
