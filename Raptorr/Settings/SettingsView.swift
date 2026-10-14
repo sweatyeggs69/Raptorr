@@ -19,32 +19,31 @@ struct SettingsView: View {
                     .frame(maxWidth: .infinity)
 
                 List {
+                    Section("Interface") {
+                        Toggle("Tab Bar Icons", isOn: $showsTabIcons)
+                    }
+
+                    Section("About") {
+                        infoRow("Version", value: PlexClientIdentity.version)
+                    }
+
+                    // Server details last, then the actions that leave it at the very bottom.
                     Section("Server") {
                         if let server = connection.currentServer {
                             infoRow("Name", value: server.name)
                             infoRow("Connection", value: connectionDescription(for: server))
-                            infoRow("Address", value: server.uri)
                         }
+                    }
+
+                    Section {
                         Button("Switch Server", systemImage: "server.rack") {
                             // Leaving the server drops everything cached from it.
                             connection.disconnect()
                             Task { await client.clearCache() }
                         }
-                    }
-
-                    Section("Interface") {
-                        Toggle("Tab Bar Icons", isOn: $showsTabIcons)
-                    }
-
-                    Section("Account") {
                         Button("Sign Out", systemImage: "rectangle.portrait.and.arrow.right", role: .destructive) {
                             isConfirmingSignOut = true
                         }
-                    }
-
-                    Section("About") {
-                        infoRow("Version", value: PlexClientIdentity.version)
-                        infoRow("Playback", value: "VLCKit")
                     }
                 }
                 .frame(maxWidth: .infinity)
