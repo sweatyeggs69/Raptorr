@@ -8,6 +8,8 @@ final class PersonViewModel {
     private(set) var isLoading = false
     /// The lead of the person's Wikipedia article, when the server has no bio.
     private(set) var wikipediaBiography: String?
+    /// "Born ... · Died ...", from Wikidata.
+    private(set) var lifeDates: String?
 
     /// The server's bio if it sent one, else Wikipedia's.
     var biography: String? {
@@ -39,8 +41,12 @@ final class PersonViewModel {
         if let fresh = try? await client.personMedia(server: server, id: id), fresh != media {
             media = fresh
         }
-        if biography == nil, let name = person.tag {
-            wikipediaBiography = await WikipediaClient.shared.biography(for: name)
+        if (biography == nil || lifeDates == nil), let name = person.tag,
+           let article = await WikipediaClient.shared.article(for: name) {
+            if biography == nil { wikipediaBiography = article.extract }
+            if lifeDates == nil, let entity = article.wikibaseItem {
+                lifeDates = await WikidataClient.shared.lifeDates(for: entity)?.text()
+            }
         }
     }
 
