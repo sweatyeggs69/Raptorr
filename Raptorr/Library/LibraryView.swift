@@ -8,6 +8,7 @@ struct LibraryView: View {
     @Environment(\.plexServer) private var server
     @State private var viewModel = LibraryViewModel()
     @State private var path = NavigationPath()
+    @FocusState private var focusedID: String?
     @Environment(TabRouter.self) private var router
 
     private let columns = [GridItem(.adaptive(minimum: 250), spacing: 48, alignment: .top)]
@@ -22,6 +23,9 @@ struct LibraryView: View {
         // Reloads when the connection moves between local, remote and relay.
         .task(id: server.uri) {
             await viewModel.load(section: section, server: server, client: client)
+        }
+        .task(id: server.uri) {
+            await viewModel.loadLetters(section: section, server: server, client: client)
         }
     }
 
@@ -42,19 +46,39 @@ struct LibraryView: View {
         } else if viewModel.items.isEmpty {
             ContentUnavailableView("Nothing Here Yet", systemImage: section.type.systemImage)
         } else {
-            ScrollView {
-                LazyVGrid(columns: columns, spacing: 60) {
-                    ForEach(viewModel.items) { item in
-                        PosterCard(item: item)
-                            .task {
-                                await viewModel.itemAppeared(item, section: section, server: server, client: client)
+            ScrollViewReader { proxy in
+                HStack(alignment: .top, spacing: 40) {
+                    ScrollView {
+                        LazyVGrid(columns: columns, spacing: 60) {
+                            ForEach(viewModel.items) { item in
+                                PosterCard(item: item, focus: $focusedID)
+                                    .id(item.id)
+                                    .task {
+                                        await viewModel.itemAppeared(item, section: section, server: server, client: client)
+                                    }
                             }
+                        }
+                        .padding(.vertical, 40)
+                    }
+                    .scrollClipDisabled()
+
+                    if viewModel.letters.count > 1 {
+                        LetterJumpBar(letters: viewModel.letters) { letter in
+                            Task { await jump(to: letter, proxy: proxy) }
+                        }
                     }
                 }
-                .padding(.vertical, 40)
             }
-            .scrollClipDisabled()
         }
+    }
+
+    /// Scrolls to the letter's first title and moves focus onto it.
+    private func jump(to letter: LetterJump, proxy: ScrollViewProxy) async {
+        guard let id = await viewModel.jump(to: letter, section: section, server: server, client: client) else { return }
+        proxy.scrollTo(id, anchor: .top)
+        // The lazy grid builds the card after the scroll; focus it once it exists.
+        try? await Task.sleep(for: .milliseconds(100))
+        focusedID = id
     }
 }
 
