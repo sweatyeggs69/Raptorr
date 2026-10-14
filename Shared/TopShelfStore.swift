@@ -7,11 +7,14 @@ import os
 nonisolated enum TopShelfStore {
     static let appGroup = "group.com.kylemcclain.Raptorr"
 
-    /// `TopShelf/` in the shared container; `nil` if the App Group entitlement is missing.
+    /// `Library/Caches/TopShelf/` in the shared container; `nil` if the App Group entitlement
+    /// is missing. On tvOS only `Library/Caches` in the group container is writable (the root
+    /// fails with "Operation not permitted"), and it can be purged, so the app rewrites it
+    /// each time Home loads.
     static var directory: URL? {
         FileManager.default
             .containerURL(forSecurityApplicationGroupIdentifier: appGroup)?
-            .appending(path: "TopShelf", directoryHint: .isDirectory)
+            .appending(path: "Library/Caches/TopShelf", directoryHint: .isDirectory)
     }
 
     static var imagesDirectory: URL? {
