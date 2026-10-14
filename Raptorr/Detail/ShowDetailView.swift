@@ -41,7 +41,7 @@ struct ShowDetailView: View {
                     seasonPicker
                 }
 
-                episodeShelf
+                episodeList
             }
             .padding(80)
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -54,52 +54,61 @@ struct ShowDetailView: View {
         }
     }
 
+    /// Seasons as a segmented control, like the Apple TV app; moving focus across it switches
+    /// season. Long-running shows get a menu instead so the row stays readable.
+    @ViewBuilder
     private var seasonPicker: some View {
-        ScrollView(.horizontal) {
-            HStack(spacing: 24) {
+        let selection = Binding<String?>(
+            get: { viewModel.selectedSeason?.ratingKey },
+            set: { key in
+                guard let season = viewModel.seasons.first(where: { $0.ratingKey == key }) else { return }
+                Task { await viewModel.select(season: season, server: server, client: client) }
+            }
+        )
+        if viewModel.seasons.count <= 8 {
+            Picker("Season", selection: selection) {
                 ForEach(viewModel.seasons) { season in
-                    let isSelected = season.ratingKey == viewModel.selectedSeason?.ratingKey
-                    Button {
-                        Task { await viewModel.select(season: season, server: server, client: client) }
-                    } label: {
-                        Label(season.title, systemImage: "checkmark")
-                            .labelStyle(SeasonLabelStyle(isSelected: isSelected))
-                    }
+                    Text(season.title).tag(Optional(season.ratingKey))
                 }
             }
+            .pickerStyle(.segmented)
+            .frame(maxWidth: 1400, alignment: .leading)
+        } else {
+            Picker("Season", selection: selection) {
+                ForEach(viewModel.seasons) { season in
+                    Text(season.title).tag(Optional(season.ratingKey))
+                }
+            }
+            .pickerStyle(.menu)
         }
-        .scrollClipDisabled()
     }
 
     @ViewBuilder
-    private var episodeShelf: some View {
+    private var episodeList: some View {
         if viewModel.isLoadingEpisodes && viewModel.episodes.isEmpty {
             ProgressView()
         } else if viewModel.episodes.isEmpty, let errorMessage = viewModel.errorMessage {
             Label(errorMessage, systemImage: "exclamationmark.triangle")
                 .foregroundStyle(.secondary)
         } else {
-            ScrollView(.horizontal) {
-                LazyHStack(alignment: .top, spacing: 40) {
-                    ForEach(viewModel.episodes) { episode in
-                        EpisodeCard(episode: episode) {
-                            playback.play(episode)
+            LazyVStack(alignment: .leading, spacing: 40) {
+                ForEach(viewModel.episodes) { episode in
+                    EpisodeRow(episode: episode) {
+                        playback.play(episode)
+                    }
+                    .contextMenu {
+                        Button(
+                            episode.isWatched ? "Mark Unwatched" : "Mark Watched",
+                            systemImage: episode.isWatched ? "circle" : "checkmark.circle"
+                        ) {
+                            Task { await viewModel.toggleWatched(episode, server: server, client: client) }
                         }
-                        .contextMenu {
-                            Button(
-                                episode.isWatched ? "Mark Unwatched" : "Mark Watched",
-                                systemImage: episode.isWatched ? "circle" : "checkmark.circle"
-                            ) {
-                                Task { await viewModel.toggleWatched(episode, server: server, client: client) }
-                            }
-                            Button("Play from Beginning", systemImage: "arrow.counterclockwise") {
-                                playback.play(episode, resume: false)
-                            }
+                        Button("Play from Beginning", systemImage: "arrow.counterclockwise") {
+                            playback.play(episode, resume: false)
                         }
                     }
                 }
             }
-            .scrollClipDisabled()
         }
     }
 
