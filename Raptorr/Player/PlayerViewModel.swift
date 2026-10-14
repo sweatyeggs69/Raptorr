@@ -35,6 +35,7 @@ final class PlayerViewModel {
     @ObservationIgnored private var pendingResumeMs: Int?
     @ObservationIgnored private var resumeDeadline: ContinuousClock.Instant?
     @ObservationIgnored private var hasSentResumeSeek = false
+    @ObservationIgnored private var resumeLandedAtMs: Int?
 
     /// Plex asks for a timeline report on every state change and every 10 seconds otherwise.
     private let reportInterval: Duration = .seconds(10)
@@ -287,28 +288,42 @@ final class PlayerViewModel {
         applyInitialTracksIfReady()
     }
 
-    /// Seeks to the resume point once VLC is playing, then shows the video when playback has
-    /// reached it (or after a few seconds, so a seek that never lands can't hang playback).
+    /// Seeks to the resume point once VLC's video is actually running, then shows the video
+    /// when playback is moving from there. Seeking the moment VLC reports playing (before its
+    /// video output exists) froze the picture for a long time; a later seek, like a skip, works.
+    /// Audio stays muted until then, so the opening never plays out loud.
     private func seekToResumePoint() {
         guard let target = pendingResumeMs else { return }
         if resumeDeadline == nil {
-            resumeDeadline = .now + .seconds(8)
+            resumeDeadline = .now + .seconds(10)
+            player.audio?.isMuted = true
         }
-        if !hasSentResumeSeek, player.isSeekable {
+        let time = Int(player.time.intValue)
+        let isPastDeadline = ContinuousClock.now >= resumeDeadline!
+
+        if !hasSentResumeSeek {
+            let isVideoRunning = player.hasVideoOut && time >= 300
+            guard player.isSeekable, isVideoRunning || isPastDeadline else { return }
             hasSentResumeSeek = true
             player.time = VLCTime(number: NSNumber(value: target))
             #if DEBUG
-            print("[Player] resume seek to \(target)ms sent")
+            print("[Player] resume seek to \(target)ms sent at \(time)ms (video out: \(player.hasVideoOut))")
             #endif
             return
         }
-        let reached = hasSentResumeSeek && Int(player.time.intValue) >= target - 5000
+
+        // Landed (fast seek stops on the keyframe before the target) and moving on from there.
+        if resumeLandedAtMs == nil, time >= target - 5000 {
+            resumeLandedAtMs = time
+        }
+        let isMoving = resumeLandedAtMs.map { time >= $0 + 300 } ?? false
         #if DEBUG
-        print("[Player] resume: seekable=\(player.isSeekable) sent=\(hasSentResumeSeek) time=\(player.time.intValue)ms target=\(target)ms")
+        print("[Player] resume: time=\(time)ms target=\(target)ms landed=\(resumeLandedAtMs.map(String.init) ?? "no")")
         #endif
-        if reached || ContinuousClock.now >= resumeDeadline! {
+        if isMoving || isPastDeadline {
             pendingResumeMs = nil
             videoView.isHidden = false
+            player.audio?.isMuted = false
         }
     }
 
