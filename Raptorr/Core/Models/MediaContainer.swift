@@ -14,6 +14,8 @@ nonisolated struct MediaContainer: Decodable, Sendable {
     let firstCharacters: [FirstCharacter]?
     /// `Directory` again, on `/library/sections/{sectionId}/sorts` responses.
     let sorts: [SectionSort]?
+    /// `Directory` again, on `/library/people/{personId}` responses.
+    let tags: [PlexTag]?
     let hub: [Hub]?
 
     enum CodingKeys: String, CodingKey {
@@ -36,6 +38,7 @@ nonisolated struct MediaContainer: Decodable, Sendable {
         // Only first-character directories carry a `size`, so this is nil everywhere else.
         firstCharacters = try? container.decodeIfPresent([FirstCharacter].self, forKey: .directory)
         sorts = try? container.decodeIfPresent([SectionSort].self, forKey: .directory)
+        tags = try? container.decodeIfPresent([PlexTag].self, forKey: .directory)
         hub = try container.decodeIfPresent([Hub].self, forKey: .hub)
     }
 }
