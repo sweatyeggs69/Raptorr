@@ -6,7 +6,7 @@ import Foundation
 nonisolated struct WikipediaClient: Sendable {
     static let shared = WikipediaClient()
 
-    private static let baseURL = URL(string: "https://en.wikipedia.org/api/rest_v1/page/summary/")!
+    private static let baseURL = "https://en.wikipedia.org/api/rest_v1/page/summary/"
     private static let performerWords = [
         "actor", "actress", "comedian", "filmmaker", "director", "performer",
         "entertainer", "singer", "musician", "rapper", "presenter", "host", "voice", "model",
@@ -33,8 +33,10 @@ nonisolated struct WikipediaClient: Sendable {
         let path = title.replacingOccurrences(of: " ", with: "_")
         var allowed = CharacterSet.urlPathAllowed
         allowed.remove("/")
-        guard let encoded = path.addingPercentEncoding(withAllowedCharacters: allowed) else { return nil }
-        var request = URLRequest(url: Self.baseURL.appending(path: encoded, directoryHint: .notDirectory))
+        // Built as a string: `URL.appending(path:)` would encode the already-encoded title again.
+        guard let encoded = path.addingPercentEncoding(withAllowedCharacters: allowed),
+              let url = URL(string: Self.baseURL + encoded) else { return nil }
+        var request = URLRequest(url: url)
         // Wikimedia asks API clients to identify themselves.
         request.setValue("Raptorr/1.0 (Apple TV Plex client)", forHTTPHeaderField: "User-Agent")
         request.setValue("application/json", forHTTPHeaderField: "Accept")
