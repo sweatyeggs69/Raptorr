@@ -25,7 +25,7 @@ nonisolated struct WikidataClient: Sendable {
         guard let url = components?.url else { return nil }
         var request = URLRequest(url: url)
         // Wikimedia asks API clients to identify themselves.
-        request.setValue("Raptorr/1.0 (Apple TV Plex client)", forHTTPHeaderField: "User-Agent")
+        request.setValue("Plexiglass/1.0 (Apple TV Plex client)", forHTTPHeaderField: "User-Agent")
         guard let (data, response) = try? await session.data(for: request),
               (response as? HTTPURLResponse)?.statusCode == 200,
               let claims = try? JSONDecoder().decode(WikidataClaims.self, from: data),

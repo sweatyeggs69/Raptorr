@@ -2,6 +2,7 @@ import Foundation
 import Security
 
 enum KeychainHelper {
+    // Kept from the app's former name, Raptorr, so existing sign-ins survive the rename.
     private static let service = "com.kylemcclain.Raptorr"
 
     static func save(_ value: String, forKey key: String) {

@@ -2,7 +2,8 @@
 
 ## Overview
 
-- Raptorr is a Plex client for Apple TV that plays movie and TV libraries.
+- Plexiglass (formerly Raptorr) is a Plex client for Apple TV that plays movie and TV libraries.
+- The rename is user-facing only: the display name, sign-in title, Plex product and device name, and User-Agent say Plexiglass. The Xcode project, target, folders, bundle identifier and Keychain service keep Raptorr, so the install, sign-in and settings carry over.
 - tvOS 27 SwiftUI app, minimum deployment tvOS 27.
 - SwiftUI first, UIKit only as a fallback (the VLC video surface is the one UIKit view).
 - All UI uses the default tvOS 27 design language and Liquid Glass styling.

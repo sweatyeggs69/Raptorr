@@ -4,7 +4,7 @@ import Foundation
 /// subtitle "Auto" should show.
 ///
 /// VLC lists embedded tracks in container order, then sidecar files in the order they were
-/// added, which is the same order Raptorr builds the Plex list in. When the counts differ the
+/// added, which is the same order Plexiglass builds the Plex list in. When the counts differ the
 /// lists can't be paired safely, so VLC's own names are used instead.
 nonisolated enum TrackMatching {
     struct VLCTrack: Sendable {

@@ -5,10 +5,10 @@ import Foundation
 /// Per the Plex auth docs, the client identifier is a random value generated once per
 /// install and reused for all later requests.
 nonisolated enum PlexClientIdentity {
-    static let product = "Raptorr"
+    static let product = "Plexiglass"
     static let platform = "tvOS"
     static let device = "Apple TV"
-    static let deviceName = "Raptorr (Apple TV)"
+    static let deviceName = "Plexiglass (Apple TV)"
 
     static let version: String =
         Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "1.0"

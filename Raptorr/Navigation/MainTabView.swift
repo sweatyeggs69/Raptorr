@@ -120,7 +120,7 @@ struct MainTabView: View {
     }
 
     private var firstSyncMessage: String {
-        "Raptorr is downloading your library from \(activeServer.name) so it opens quickly from now on. This first sync can take a while. You can keep browsing; the sync button in the top left shows it's still working."
+        "Plexiglass is downloading your library from \(activeServer.name) so it opens quickly from now on. This first sync can take a while. You can keep browsing; the sync button in the top left shows it's still working."
     }
 
     private func sync() async {

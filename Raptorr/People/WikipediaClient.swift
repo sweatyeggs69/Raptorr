@@ -39,7 +39,7 @@ nonisolated struct WikipediaClient: Sendable {
               let url = URL(string: Self.baseURL + encoded) else { return nil }
         var request = URLRequest(url: url)
         // Wikimedia asks API clients to identify themselves.
-        request.setValue("Raptorr/1.0 (Apple TV Plex client)", forHTTPHeaderField: "User-Agent")
+        request.setValue("Plexiglass/1.0 (Apple TV Plex client)", forHTTPHeaderField: "User-Agent")
         request.setValue("application/json", forHTTPHeaderField: "Accept")
         guard let (data, response) = try? await session.data(for: request),
               (response as? HTTPURLResponse)?.statusCode == 200 else { return nil }
