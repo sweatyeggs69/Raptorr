@@ -56,8 +56,9 @@ final class ItemDetailViewModel {
         let genres = (item.genre ?? []).compactMap(\.tag).prefix(3)
         let directors = (item.director ?? []).compactMap(\.tag).prefix(2)
         var lines: [String] = []
-        // Year, rating, runtime and resolution lead the line (with S#E# for episodes).
-        if !item.infoLine.isEmpty { lines.append(item.infoLine) }
+        // S#E# (episodes), year and rating lead the line; the runtime sits by the buttons.
+        let info = [item.episodeLabel, item.year.map(String.init), item.contentRating].compactMap { $0 }
+        if !info.isEmpty { lines.append(info.joined(separator: " · ")) }
         if !genres.isEmpty { lines.append(genres.joined(separator: ", ")) }
         if !directors.isEmpty { lines.append("Directed by " + directors.joined(separator: ", ")) }
         return lines.isEmpty ? nil : lines.joined(separator: "  ·  ")
