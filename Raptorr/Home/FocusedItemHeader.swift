@@ -5,7 +5,7 @@ struct FocusedItemHeader: View {
     let item: PlexMetadata
     let logoPath: String?
     var isLoadingLogo = false
-    /// Continue Watching cards use `continueWatchingLine` (S#E#, year, rating, runtime).
+    /// Continue Watching cards use the `continueWatchingLine` order (S#E#, year, rating, runtime).
     var isContinueWatching = false
 
     var body: some View {
@@ -37,10 +37,15 @@ struct FocusedItemHeader: View {
                 }
             }
 
-            Text(metadataLine.isEmpty ? " " : metadataLine)
+            // The placeholder keeps the line's height when an item has no metadata.
+            Text(" ")
+                .hidden()
+                .overlay(alignment: .leading) {
+                    MetadataLine(leading: leadingMetadata, rating: item.contentRating, trailing: item.durationText.map { [$0] } ?? [])
+                        .fixedSize()
+                }
                 .font(.headline)
                 .foregroundStyle(.secondary)
-                .lineLimit(1)
 
             Text(item.summary ?? "")
                 .lineLimit(HeaderLayout.summaryLines, reservesSpace: true)
@@ -55,8 +60,14 @@ struct FocusedItemHeader: View {
             .lineLimit(1)
     }
 
-    private var metadataLine: String {
-        isContinueWatching ? item.continueWatchingLine : item.infoLine
+    /// What comes before the rating: S#E# and the year on Continue Watching (matching
+    /// `continueWatchingLine`), otherwise the "S2 · E5" label of `infoLine`.
+    private var leadingMetadata: [String] {
+        if isContinueWatching {
+            [item.shortEpisodeLabel, item.year.map(String.init)].compactMap { $0 }
+        } else {
+            [item.episodeLabel].compactMap { $0 }
+        }
     }
 }
 
