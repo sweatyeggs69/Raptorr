@@ -23,6 +23,8 @@ Use Apple's TV app on tvOS as the reference for layout and behavior.
 - Metadata lines use `ItemMetadataLine` on Home and movie and episode pages: year, `RatingBadge` (outlined rounded box, as in the TV app), runtime. Home's library rows leave out the year. An episode's S#E# sits before its name in the secondary color (`EpisodeTitleLine`) on Home, episode pages and in the player.
 - Subtitles follow the TV app's menu: Off, Auto (forced subtitles only, matching the audio language), or a specific track.
 - Library grids overlay a letter column on a glass capsule at the right edge (`LetterJumpBar`). Counts come from the title sort's `firstCharacterKey` in `/library/sections/{sectionId}/sorts` (servers 404 on `/firstCharacters`); if that fails, the letters are read off every title's `titleSort`. Selecting a letter loads through that title, scrolls to it and focuses it.
+- Tabs are labeled through `TabLabel`; Settings > Interface > Tab Bar Icons (on by default, `InterfaceSettings`) hides their symbols. Search keeps its system magnifying glass.
+- Switching to Home from another tab starts Home over (`TabRouter.homeReturns`): its stack pops, it scrolls to the first row, and focus lands on that row's first card rather than the card last focused.
 - Settings and the server picker follow the system Settings app: a large symbol on the left half and a grouped `List` on the right. Info rows are no-op buttons so the focus engine can reach them.
 
 ## STRICT RULE: Always Use Stock Apple First
