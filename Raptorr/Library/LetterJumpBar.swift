@@ -6,6 +6,8 @@ struct LetterJumpBar: View {
     let letters: [LetterJump]
     let onFocus: (LetterJump) -> Void
     let onSelect: (LetterJump) -> Void
+    /// Called when focus enters or leaves the bar.
+    var onFocusChange: (Bool) -> Void = { _ in }
 
     /// The bar's width, which the grid leaves free beside it.
     static let width: CGFloat = 44
@@ -26,6 +28,9 @@ struct LetterJumpBar: View {
             }
         }
         // Scroll only when moving between letters, not when focus first enters the bar.
+        .onChange(of: focusedLetter != nil) { _, isFocused in
+            onFocusChange(isFocused)
+        }
         .onChange(of: focusedLetter) { previous, current in
             guard previous != nil, let current, let letter = letters.first(where: { $0.id == current }) else { return }
             onFocus(letter)

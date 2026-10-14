@@ -4,7 +4,7 @@ import SwiftUI
 struct CastCard: View {
     let person: PlexTag
 
-    static let portraitSize: CGFloat = 160
+    nonisolated static let portraitSize: CGFloat = 160
 
     var body: some View {
         // Opens the person page; a cast entry without an id can't be looked up, so it stays
