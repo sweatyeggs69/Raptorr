@@ -9,13 +9,13 @@ struct MainTabView: View {
     @Environment(ServerConnectionManager.self) private var connection
     @Environment(PlaybackCoordinator.self) private var playback
     @State private var viewModel = MainTabViewModel()
-    @State private var selectedTab: AppTab = .home
+    @State private var router = TabRouter()
 
     var body: some View {
         @Bindable var playback = playback
 
         // Top tab bar like the Apple TV app: Home, one tab per library, Settings, and Search on the right.
-        TabView(selection: $selectedTab) {
+        TabView(selection: $router.selection) {
             Tab("Home", systemImage: "house", value: .home) {
                 HomeView(sections: viewModel.sections)
             }
@@ -41,7 +41,7 @@ struct MainTabView: View {
             }
         }
         .tabViewStyle(.tabBarOnly)
-        .environment(\.showHomeTab, { selectedTab = .home })
+        .environment(router)
         .environment(\.plexServer, activeServer)
         // Reloads when the connection moves between local, remote and relay.
         .task(id: activeServer.uri) {

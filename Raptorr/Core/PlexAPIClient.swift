@@ -7,6 +7,8 @@ import Foundation
 /// follow the "Authenticating with Plex" section of that spec's introduction.
 nonisolated final class PlexAPIClient: Sendable {
     static let libraryIdentifier = "com.plexapp.plugins.library"
+    /// The app's one client, the environment's default, so it isn't rebuilt on every access.
+    static let shared = PlexAPIClient()
 
     private let session: URLSession
     private let cache: PlexResponseCache
