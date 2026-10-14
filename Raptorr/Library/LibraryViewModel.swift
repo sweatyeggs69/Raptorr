@@ -6,6 +6,8 @@ final class LibraryViewModel {
     private(set) var items: [PlexMetadata] = []
     private(set) var isLoading = false
     private(set) var errorMessage: String?
+    /// The jump bar's letters, from the server's first-character counts.
+    private(set) var letters: [LetterJump] = []
 
     private var totalSize: Int?
     private let pageSize = 100
@@ -21,6 +23,46 @@ final class LibraryViewModel {
             await restoreCachedPages(section: section, server: server, client: client)
         }
         await refreshLoadedPages(section: section, server: server, client: client)
+    }
+
+    func loadLetters(section: LibrarySection, server: PlexServer, client: PlexAPIClient) async {
+        if letters.isEmpty, let cached = try? await client.firstCharacters(server: server, section: section, from: .cache) {
+            letters = LetterJump.make(from: cached)
+        }
+        if let fresh = try? await client.firstCharacters(server: server, section: section) {
+            letters = LetterJump.make(from: fresh)
+        }
+    }
+
+    /// Makes sure the letter's first title is loaded and returns its id to scroll to.
+    func jump(to letter: LetterJump, section: LibrarySection, server: PlexServer, client: PlexAPIClient) async -> String? {
+        // A page load may be in flight; let it land so this one starts after it.
+        while isLoading {
+            try? await Task.sleep(for: .milliseconds(50))
+        }
+        if items.count <= letter.offset, hasMore {
+            await loadThrough(index: letter.offset, section: section, server: server, client: client)
+        }
+        guard items.indices.contains(letter.offset) else { return nil }
+        return items[letter.offset].id
+    }
+
+    /// Loads everything up to `index` in one request, so a jump far down the alphabet doesn't
+    /// page through the whole library. The size stays a multiple of the page size so later
+    /// pages keep lining up.
+    private func loadThrough(index: Int, section: LibrarySection, server: PlexServer, client: PlexAPIClient) async {
+        isLoading = true
+        defer { isLoading = false }
+        let start = items.count
+        let size = ((index - start) / pageSize + 1) * pageSize
+        do {
+            let page = try await client.sectionItems(server: server, section: section, start: start, size: size)
+            items.append(contentsOf: page.items)
+            totalSize = page.totalSize ?? (page.items.count < size ? items.count : nil)
+            errorMessage = nil
+        } catch {
+            errorMessage = error.localizedDescription
+        }
     }
 
     /// Loads the next page once the user scrolls near the end of what is loaded.

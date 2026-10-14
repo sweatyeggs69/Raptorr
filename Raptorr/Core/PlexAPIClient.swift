@@ -100,6 +100,24 @@ nonisolated final class PlexAPIClient: Sendable {
         return (response.metadata ?? [], response.totalSize)
     }
 
+    /// How many titles in a library start with each character, in title-sort order.
+    func firstCharacters(
+        server: PlexServer,
+        section: LibrarySection,
+        from source: DataSource = .network
+    ) async throws -> [FirstCharacter] {
+        var query: [URLQueryItem] = []
+        if let type = section.type.metadataTypeNumber {
+            query.append(URLQueryItem(name: "type", value: "\(type)"))
+        }
+        return try await container(
+            server: server,
+            path: "/library/sections/\(section.key)/firstCharacters",
+            query: query,
+            source: source
+        ).firstCharacters ?? []
+    }
+
     // MARK: - Hubs
 
     func continueWatching(server: PlexServer, count: Int = 20, from source: DataSource = .network) async throws -> [Hub] {
