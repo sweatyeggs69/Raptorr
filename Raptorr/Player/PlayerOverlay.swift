@@ -1,67 +1,63 @@
 import SwiftUI
 
-/// Title, play state and progress shown over the video.
+/// Shown over the video: a small title in the top left, and the timeline alone at the bottom.
 struct PlayerOverlay: View {
     let viewModel: PlayerViewModel
 
     var body: some View {
-        VStack {
+        VStack(alignment: .leading) {
+            titleBar
             Spacer()
-
-            VStack(alignment: .leading, spacing: 20) {
-                HStack(alignment: .bottom, spacing: 20) {
-                    Image(systemName: viewModel.isPlaying ? "pause.fill" : "play.fill")
-                        .contentTransition(.symbolEffect(.replace))
-                        .font(.title2)
-
-                    VStack(alignment: .leading, spacing: 8) {
-                        if viewModel.item.kind == .episode {
-                            TitleLogo(
-                                title: viewModel.item.grandparentTitle ?? "",
-                                logoPath: viewModel.logoPath,
-                                maxWidth: 400,
-                                maxHeight: 100,
-                                font: .headline
-                            )
-                            Text(title)
-                                .font(.title2.bold())
-                        } else {
-                            TitleLogo(
-                                title: viewModel.item.title,
-                                logoPath: viewModel.logoPath,
-                                maxWidth: 500,
-                                maxHeight: 120,
-                                font: .title2.bold()
-                            )
-                        }
-                    }
-                }
-
-                ProgressView(value: viewModel.progress)
-
-                HStack {
-                    Text(Self.format(ms: viewModel.currentTimeMs))
-                    Spacer()
-                    Text("-" + Self.format(ms: max(viewModel.durationMs - viewModel.currentTimeMs, 0)))
-                }
-                .font(.caption.monospacedDigit())
-                .foregroundStyle(.secondary)
-
-                Text("Swipe down for audio and subtitles")
-                    .font(.caption2)
-                    .foregroundStyle(.tertiary)
-            }
-            .padding(40)
-            .glassEffect(in: .rect(cornerRadius: 32))
-            .padding(60)
+            timeline
+        }
+        .padding(60)
+        .background {
+            // Keeps the title readable over bright video.
+            LinearGradient(colors: [.black.opacity(0.6), .clear], startPoint: .top, endPoint: .center)
+                .ignoresSafeArea()
         }
     }
 
-    private var title: String {
-        if let label = viewModel.item.episodeLabel {
-            return "\(label)  \(viewModel.item.title)"
+    /// Small logo, then the episode title and S#E# for episodes.
+    private var titleBar: some View {
+        HStack(alignment: .center, spacing: 20) {
+            TitleLogo(
+                title: viewModel.item.kind == .episode ? (viewModel.item.grandparentTitle ?? "") : viewModel.item.title,
+                logoPath: viewModel.logoPath,
+                maxWidth: 240,
+                maxHeight: 60,
+                font: .headline,
+                hugsContent: true
+            )
+
+            if viewModel.item.kind == .episode {
+                Text(viewModel.item.title)
+                    .font(.headline)
+                    .lineLimit(1)
+                if let label = viewModel.item.shortEpisodeLabel {
+                    Text(label)
+                        .font(.headline)
+                        .foregroundStyle(.secondary)
+                }
+            }
         }
-        return viewModel.item.title
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private var timeline: some View {
+        VStack(spacing: 12) {
+            ProgressView(value: viewModel.progress)
+
+            HStack {
+                Text(Self.format(ms: viewModel.currentTimeMs))
+                Spacer()
+                Text("-" + Self.format(ms: max(viewModel.durationMs - viewModel.currentTimeMs, 0)))
+            }
+            .font(.caption.monospacedDigit())
+            .foregroundStyle(.secondary)
+        }
+        .padding(32)
+        .glassEffect(in: .rect(cornerRadius: 32))
     }
 
     static func format(ms: Int) -> String {
