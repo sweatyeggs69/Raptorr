@@ -351,7 +351,8 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Raptorr/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = Plexiglass;
+				INFOPLIST_KEY_CFBundleDisplayName = "Raptorr Media Player";
+				INFOPLIST_KEY_NSLocalNetworkUsageDescription = "Raptorr connects to Plex Media Servers on your local network.";
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UIUserInterfaceStyle = Automatic;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -384,7 +385,8 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Raptorr/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = Plexiglass;
+				INFOPLIST_KEY_CFBundleDisplayName = "Raptorr Media Player";
+				INFOPLIST_KEY_NSLocalNetworkUsageDescription = "Raptorr connects to Plex Media Servers on your local network.";
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UIUserInterfaceStyle = Automatic;
 				LD_RUNPATH_SEARCH_PATHS = (
