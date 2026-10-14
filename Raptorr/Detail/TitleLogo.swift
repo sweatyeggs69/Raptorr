@@ -28,10 +28,12 @@ struct TitleLogo: View {
         } else if let url = client.logoURL(server: server, path: logoPath, width: Int(maxWidth * 2), height: Int(maxHeight * 2)) {
             AsyncImage(url: url) { phase in
                 if let image = phase.image {
+                    // The fitted logo is usually narrower or shorter than the box; pin it to
+                    // the bottom left corner rather than leaving it centered.
                     image
                         .resizable()
                         .scaledToFit()
-                        .frame(maxWidth: maxWidth, maxHeight: maxHeight, alignment: .bottomLeading)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomLeading)
                         .accessibilityLabel(title)
                 } else if phase.error != nil {
                     titleText
@@ -49,7 +51,8 @@ struct TitleLogo: View {
             .font(font)
             .lineLimit(2)
             .minimumScaleFactor(0.6)
-            .frame(maxWidth: maxWidth, alignment: .bottomLeading)
+            .multilineTextAlignment(.leading)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomLeading)
     }
 }
 
