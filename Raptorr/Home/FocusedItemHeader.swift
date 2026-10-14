@@ -4,7 +4,7 @@ import SwiftUI
 struct FocusedItemHeader: View {
     let item: PlexMetadata
     let logoPath: String?
-    /// Continue Watching cards use the `continueWatchingLine` order (S#E#, year, rating, runtime).
+    /// Continue Watching cards include the year in the metadata line.
     var isContinueWatching = false
 
     var body: some View {
