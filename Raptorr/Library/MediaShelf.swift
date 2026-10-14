@@ -18,7 +18,7 @@ struct MediaShelf: View {
                     ForEach(items) { item in
                         switch style {
                         case .poster:
-                            PosterCard(item: item, width: 220, onFocus: focusAction(for: item))
+                            PosterCard(item: item, width: 200, onFocus: focusAction(for: item))
                         case .landscape:
                             LandscapeCard(item: item, onFocus: focusAction(for: item))
                         }

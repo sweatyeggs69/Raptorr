@@ -34,13 +34,12 @@ struct PosterCard: View {
                     .lineLimit(1)
                     .frame(width: width, alignment: .leading)
 
-                if let subtitle {
-                    Text(subtitle)
-                        .font(.caption2)
-                        .foregroundStyle(.secondary)
-                        .lineLimit(1)
-                        .frame(width: width, alignment: .leading)
-                }
+                // Always present so every poster in a row is the same height.
+                Text(subtitle ?? " ")
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                    .frame(width: width, alignment: .leading)
             }
         }
         .buttonStyle(.borderless)

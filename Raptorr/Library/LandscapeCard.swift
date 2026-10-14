@@ -29,16 +29,20 @@ struct LandscapeCard: View {
                     .font(.caption)
                     .lineLimit(1)
 
-                if let label = item.episodeLabel {
-                    Text("\(label) · \(item.title)")
-                        .font(.caption2)
-                        .foregroundStyle(.secondary)
-                        .lineLimit(1)
-                }
+                // Always present (the year for movies) so every card in the row is the same height.
+                Text(subtitle)
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
             }
             .frame(width: width, alignment: .leading)
         }
         .buttonStyle(.borderless)
+    }
+
+    private var subtitle: String {
+        if let label = item.episodeLabel { return "\(label) · \(item.title)" }
+        return item.year.map(String.init) ?? " "
     }
 }
 

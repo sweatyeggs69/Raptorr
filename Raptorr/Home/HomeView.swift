@@ -63,7 +63,16 @@ struct HomeView: View {
                             ForEach(viewModel.rows) { row in
                                 MediaShelf(title: row.title, items: row.items, style: row.style) { item in
                                     focus(item, inRow: row.id)
+                                    // Re-snap on every focus change, not just row changes: the
+                                    // focus engine nudges the scroll view to fit a lifted card,
+                                    // which pushed the row title up under the mask.
+                                    withAnimation(.easeInOut) {
+                                        proxy.scrollTo(row.id, anchor: .bottom)
+                                    }
                                 }
+                                // Room below the cards for the focus lift, so the focus engine
+                                // has no reason to scroll.
+                                .padding(.bottom, Self.liftAllowance)
                                 // Each row fills the area, bottom aligned, so whichever row is
                                 // active lands in the same place.
                                 .containerRelativeFrame(.vertical, alignment: .bottomLeading)
@@ -81,13 +90,6 @@ struct HomeView: View {
                             .padding(.bottom, -200)
                     }
                     .frame(height: Self.rowAreaHeight)
-                    // Focus moves first, then the active row snaps to the bottom slot.
-                    .onChange(of: viewModel.activeRowID) { _, rowID in
-                        guard let rowID else { return }
-                        withAnimation(.easeInOut) {
-                            proxy.scrollTo(rowID, anchor: .bottom)
-                        }
-                    }
                 }
             }
             // Keeps the header clear of the tab bar.
@@ -99,8 +101,9 @@ struct HomeView: View {
         }
     }
 
-    /// Tall enough for a poster row: title, 2:3 card and its captions.
+    /// Tall enough for a poster row (title, 2:3 card, two caption lines) plus the lift allowance.
     private static let rowAreaHeight: CGFloat = 480
+    private static let liftAllowance: CGFloat = 30
 
     private func focus(_ item: PlexMetadata, inRow rowID: String) {
         viewModel.focus(item, inRow: rowID, server: server, client: client)
