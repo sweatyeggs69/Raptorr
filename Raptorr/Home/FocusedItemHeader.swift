@@ -17,6 +17,7 @@ struct FocusedItemHeader: View {
                 maxWidth: HeaderLayout.logoWidth,
                 maxHeight: HeaderLayout.logoHeight
             )
+            .padding(.bottom, HeaderLayout.logoBottomPadding)
 
             // Movies have no episode title, so the line is left out. The whole header
             // crossfades between items, so the logo moving with it doesn't show.
