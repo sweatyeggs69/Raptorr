@@ -36,6 +36,21 @@ final class LibraryViewModel {
             print("[Library] firstCharacters failed for section \(section.key): \(error)")
             #endif
         }
+        guard letters.count <= 1 else { return }
+        // No usable counts from the server: load every title and read the letters off them.
+        await loadAll(section: section, server: server, client: client)
+        letters = LetterJump.make(fromSortedTitles: items.map { $0.titleSort ?? $0.title })
+    }
+
+    private func loadAll(section: LibrarySection, server: PlexServer, client: PlexAPIClient) async {
+        while hasMore {
+            while isLoading {
+                try? await Task.sleep(for: .milliseconds(50))
+            }
+            let before = items.count
+            await loadThrough(index: max((totalSize ?? 0) - 1, before), section: section, server: server, client: client)
+            if items.count == before { break }
+        }
     }
 
     /// Makes sure the letter's first title is loaded and returns its id to scroll to.

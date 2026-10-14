@@ -14,4 +14,11 @@ struct LetterJumpTests {
         #expect(letters.map(\.title) == ["#", "A", "G"])
         #expect(letters.map(\.offset) == [0, 2, 7])
     }
+
+    @Test func lettersFromSortedTitles() {
+        let letters = LetterJump.make(fromSortedTitles: ["12 Monkeys", "Alien", "Avatar", "Émilie", "Gattaca", "Zodiac"])
+
+        #expect(letters.map(\.title) == ["#", "A", "E", "G", "Z"])
+        #expect(letters.map(\.offset) == [0, 1, 3, 4, 5])
+    }
 }

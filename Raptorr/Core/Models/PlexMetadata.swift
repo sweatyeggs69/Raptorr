@@ -6,6 +6,8 @@ nonisolated struct PlexMetadata: Decodable, Sendable, Hashable, Identifiable {
     let key: String?
     let type: String?
     let title: String
+    /// The title as the server sorts it (e.g. without a leading "The").
+    let titleSort: String?
     let summary: String?
     let tagline: String?
     let year: Int?
@@ -39,7 +41,7 @@ nonisolated struct PlexMetadata: Decodable, Sendable, Hashable, Identifiable {
     var id: String { ratingKey }
 
     enum CodingKeys: String, CodingKey {
-        case ratingKey, key, type, title, summary, tagline, year, index, parentIndex
+        case ratingKey, key, type, title, titleSort, summary, tagline, year, index, parentIndex
         case duration, viewOffset, viewCount, leafCount, viewedLeafCount
         case thumb, art, parentThumb, grandparentThumb, grandparentArt
         case parentTitle, grandparentTitle, parentRatingKey, grandparentRatingKey
@@ -84,12 +86,14 @@ nonisolated struct PlexMetadata: Decodable, Sendable, Hashable, Identifiable {
         genre: [PlexTag]? = nil,
         director: [PlexTag]? = nil,
         role: [PlexTag]? = nil,
-        image: [PlexImage]? = nil
+        image: [PlexImage]? = nil,
+        titleSort: String? = nil
     ) {
         self.ratingKey = ratingKey
         self.key = key
         self.type = type
         self.title = title
+        self.titleSort = titleSort
         self.summary = summary
         self.tagline = tagline
         self.year = year
