@@ -16,9 +16,10 @@ nonisolated final class PlexAPIClient: Sendable {
         self.cache = cache
     }
 
-    /// Forgets every cached library response, e.g. on sign out.
+    /// Forgets every cached library response and downloaded image, e.g. on sign out.
     func clearCache() async {
         await cache.removeAll()
+        ImageDiskCache.shared.removeAll()
     }
 
     // MARK: - plex.tv

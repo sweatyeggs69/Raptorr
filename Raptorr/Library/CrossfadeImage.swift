@@ -5,8 +5,8 @@ import UIKit
 ///
 /// `AsyncImage` drops the old image as soon as the URL changes, so a new backdrop or card
 /// would flash through its placeholder. This keeps showing the previous image until the next
-/// one has loaded, then fades between them. Loads go through `URLSession.shared`, so they use
-/// the app's URL cache.
+/// one has loaded, then fades between them. Loads go through `ImageLoader`, which checks memory,
+/// then the disk cache, then the server.
 struct CrossfadeImage<Placeholder: View>: View {
     let url: URL?
     var contentMode: ContentMode
@@ -82,15 +82,9 @@ struct CrossfadeImage<Placeholder: View>: View {
             failed = false
             return
         }
-        let loaded = try? await URLSession.shared.data(from: url).0
-        guard !Task.isCancelled else { return }
-        // Decode off the main thread so large backdrops don't stall focus movement.
-        let decoded = await Task.detached(priority: .userInitiated) {
-            loaded.flatMap(UIImage.init(data:))?.preparingForDisplay()
-        }.value
+        let decoded = await ImageLoader.shared.image(for: url)
         guard !Task.isCancelled else { return }
         if let decoded {
-            ImageMemoryCache.shared.store(decoded, for: url)
             image = decoded
             imageURL = url
             failed = false

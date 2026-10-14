@@ -7,14 +7,18 @@ struct EpisodeRow: View {
     let action: () -> Void
 
     private let imageWidth: CGFloat = 400
+    /// The still's requested pixel size (2x the 16:9 frame), shared with the show page's
+    /// prefetch so both ask for the same image.
+    static let stillPixelWidth = 800
+    static let stillPixelHeight = 450
 
     var body: some View {
         Button(action: action) {
             HStack(alignment: .top, spacing: 40) {
                 ArtworkImage(
                     path: episode.thumb,
-                    width: Int(imageWidth * 2),
-                    height: Int(imageWidth * 9 / 8),
+                    width: Self.stillPixelWidth,
+                    height: Self.stillPixelHeight,
                     placeholderSymbol: "tv"
                 )
                 .frame(width: imageWidth, height: imageWidth * 9 / 16)
