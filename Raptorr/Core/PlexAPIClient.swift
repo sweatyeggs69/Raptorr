@@ -137,6 +137,21 @@ nonisolated final class PlexAPIClient: Sendable {
         try await container(server: server, path: "/library/metadata/\(ratingKey)", source: source).metadata?.first
     }
 
+    /// Titles similar to a movie or show (`GET /library/metadata/{ids}/similar`).
+    func similar(
+        server: PlexServer,
+        ratingKey: String,
+        count: Int = 20,
+        from source: DataSource = .network
+    ) async throws -> [PlexMetadata] {
+        try await container(
+            server: server,
+            path: "/library/metadata/\(ratingKey)/similar",
+            query: [URLQueryItem(name: "count", value: "\(count)")],
+            source: source
+        ).metadata ?? []
+    }
+
     /// Seasons of a show, or episodes of a season. The spec requires paging headers here.
     func children(
         server: PlexServer,

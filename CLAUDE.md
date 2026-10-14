@@ -18,6 +18,7 @@ Use Apple's TV app on tvOS as the reference for layout and behavior.
 - Artwork, backdrops and logos load through `CrossfadeImage`, which keeps the old image until the new one loads and crossfades between them, and loads through `ImageLoader`: decoded images in `ImageMemoryCache`, then downloaded files in `ImageDiskCache` (Caches, keyed by the request without host or token), then the server. Show pages prefetch every season's episodes and stills on open. Don't use `AsyncImage` for artwork.
 - Titles show the movie or show's clear logo (`Image` of type `clearLogo`) through `TitleLogo`, falling back to text when there is no logo. Episodes use their show's logo.
 - Show pages switch seasons with a segmented picker (a menu past 8 seasons) and list episodes vertically: 16:9 still on the left, episode number, name and description on the right.
+- Movie, episode and show pages end with a Cast row (the item's `Role` tags) and, for movies and shows, a Related row from `/library/metadata/{ids}/similar`.
 - Subtitles follow the TV app's menu: Off, Auto (forced subtitles only, matching the audio language), or a specific track.
 
 ## STRICT RULE: Always Use Stock Apple First
