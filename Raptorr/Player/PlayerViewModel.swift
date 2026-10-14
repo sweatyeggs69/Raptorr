@@ -30,6 +30,11 @@ final class PlayerViewModel {
     @ObservationIgnored private var plexSubtitleStreams: [PlexStream] = []
     @ObservationIgnored private var hasAppliedInitialTracks = false
     @ObservationIgnored private var playingTicks = 0
+    /// The resume point, until playback has reached it. VLC's `:start-time=` option left
+    /// resumed playback stuck at 0:00, so the player seeks once playback starts instead.
+    @ObservationIgnored private var pendingResumeMs: Int?
+    @ObservationIgnored private var resumeDeadline: ContinuousClock.Instant?
+    @ObservationIgnored private var hasSentResumeSeek = false
 
     /// Plex asks for a timeline report on every state change and every 10 seconds otherwise.
     private let reportInterval: Duration = .seconds(10)
@@ -102,7 +107,10 @@ final class PlayerViewModel {
         plexSubtitleStreams = TrackMatching.plexSubtitleStreams(in: part)
 
         if let offset = request.startOffsetMs, offset > 0 {
-            media.addOption(":start-time=\(Double(offset) / 1000)")
+            pendingResumeMs = offset
+            currentTimeMs = offset
+            // Hidden until the seek lands, so the opening frames never flash by.
+            videoView.isHidden = true
         }
         player.media = media
         player.play()
@@ -244,15 +252,19 @@ final class PlayerViewModel {
     // MARK: - State sync
 
     private func sync() {
-        currentTimeMs = Int(player.time.intValue)
         if let length = player.media?.length.intValue, length > 0 {
             durationMs = Int(length)
         }
+        if pendingResumeMs != nil, player.state == .playing {
+            seekToResumePoint()
+        }
+        // Until the resume seek lands, the timeline shows the resume point, not 0:00.
+        currentTimeMs = pendingResumeMs ?? Int(player.time.intValue)
 
         switch player.state {
         case .playing:
             hasStartedPlaying = true
-            phase = .playing
+            phase = pendingResumeMs == nil ? .playing : .loading
         case .paused:
             phase = .paused
         case .stopped, .stopping:
@@ -264,6 +276,25 @@ final class PlayerViewModel {
         }
         refreshTracks()
         applyInitialTracksIfReady()
+    }
+
+    /// Seeks to the resume point once VLC is playing, then shows the video when playback has
+    /// reached it (or after a few seconds, so a seek that never lands can't hang playback).
+    private func seekToResumePoint() {
+        guard let target = pendingResumeMs else { return }
+        if resumeDeadline == nil {
+            resumeDeadline = .now + .seconds(8)
+        }
+        if !hasSentResumeSeek, player.isSeekable {
+            hasSentResumeSeek = true
+            player.time = VLCTime(number: NSNumber(value: target))
+            return
+        }
+        let reached = hasSentResumeSeek && Int(player.time.intValue) >= target - 5000
+        if reached || ContinuousClock.now >= resumeDeadline! {
+            pendingResumeMs = nil
+            videoView.isHidden = false
+        }
     }
 
     private func refreshTracks() {
