@@ -54,7 +54,7 @@ final class HomeViewModel {
 
     /// Cards decoded into memory per row up front; the rest only go to disk, since every
     /// card decoded at once would overrun the memory cache.
-    private static let decodedCardsPerRow = 10
+    private static let decodedCardsPerRow = 20
 
     /// Downloads every Home card's artwork and backdrop ahead of time, so moving quickly along
     /// a row shows images from cache instead of waiting on the server.

@@ -16,6 +16,7 @@ struct CrossfadeImage<Placeholder: View>: View {
     /// Takes the loaded image's aspect ratio instead of filling the space offered, so in a
     /// row a short, wide logo is only as wide as it draws.
     var sizesToImage: Bool
+    var loader: ImageLoader
 
     @State private var image: UIImage?
     @State private var imageURL: URL?
@@ -26,6 +27,7 @@ struct CrossfadeImage<Placeholder: View>: View {
         contentMode: ContentMode = .fill,
         alignment: Alignment = .center,
         sizesToImage: Bool = false,
+        loader: ImageLoader = .shared,
         @ViewBuilder placeholder: @escaping (_ failed: Bool) -> Placeholder
     ) {
         self.url = url
@@ -33,9 +35,10 @@ struct CrossfadeImage<Placeholder: View>: View {
         self.alignment = alignment
         self.placeholder = placeholder
         self.sizesToImage = sizesToImage
+        self.loader = loader
         // Start on the cached image, if any, so a view rebuilt after scrolling back on
         // screen appears with its artwork already there, without a fade.
-        let cached = url.flatMap(ImageMemoryCache.shared.image(for:))
+        let cached = url.flatMap(loader.memoryCache.image(for:))
         _image = State(initialValue: cached)
         _imageURL = State(initialValue: cached == nil ? nil : url)
     }
@@ -76,13 +79,13 @@ struct CrossfadeImage<Placeholder: View>: View {
             return
         }
         guard url != imageURL else { return }
-        if let cached = ImageMemoryCache.shared.image(for: url) {
+        if let cached = loader.memoryCache.image(for: url) {
             image = cached
             imageURL = url
             failed = false
             return
         }
-        let decoded = await ImageLoader.shared.image(for: url)
+        let decoded = await loader.image(for: url)
         guard !Task.isCancelled else { return }
         if let decoded {
             image = decoded

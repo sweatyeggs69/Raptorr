@@ -24,6 +24,7 @@ nonisolated final class PlexAPIClient: Sendable {
         await cache.removeAll()
         ImageDiskCache.shared.removeAll()
         ImageMemoryCache.shared.removeAll()
+        ImageMemoryCache.backdrops.removeAll()
         LibraryPrefetcher.resetSchedule()
     }
 

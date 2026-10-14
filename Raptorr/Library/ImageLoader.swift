@@ -4,6 +4,11 @@ import UIKit
 /// everything asking for the same image at once.
 actor ImageLoader {
     static let shared = ImageLoader()
+    /// Backdrops, decoded into their own memory cache.
+    static let backdrops = ImageLoader(memory: .backdrops)
+
+    /// The memory cache this loader decodes into, read synchronously by `CrossfadeImage`.
+    nonisolated let memoryCache: ImageMemoryCache
 
     private let memory: ImageMemoryCache
     private let disk: ImageDiskCache
@@ -11,6 +16,7 @@ actor ImageLoader {
 
     init(memory: ImageMemoryCache = .shared, disk: ImageDiskCache = .shared) {
         self.memory = memory
+        self.memoryCache = memory
         self.disk = disk
     }
 
