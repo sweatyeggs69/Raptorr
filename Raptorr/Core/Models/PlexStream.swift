@@ -18,13 +18,23 @@ nonisolated struct PlexStream: Decodable, Sendable, Hashable {
     let hearingImpaired: Bool?
     /// Present only for sidecar (external) subtitle files.
     let key: String?
+    /// Video only: what the display should switch to while it plays.
+    var frameRate: FlexibleNumber? = nil
+    var width: Int? = nil
+    var height: Int? = nil
+    /// e.g. `smpte2084` (HDR10/PQ), `arib-std-b67` (HLG), `bt709` (SDR).
+    var colorTrc: String? = nil
+    var colorPrimaries: String? = nil
+    var colorSpace: String? = nil
 
     enum CodingKeys: String, CodingKey {
         case id, streamType, index, codec, language, languageCode, title
         case displayTitle, extendedDisplayTitle, selected, forced, hearingImpaired, key
+        case frameRate, width, height, colorTrc, colorPrimaries, colorSpace
         case isDefault = "default"
     }
 
+    var isVideo: Bool { streamType == 1 }
     var isAudio: Bool { streamType == 2 }
     var isSubtitle: Bool { streamType == 3 }
     var isExternalSubtitle: Bool { isSubtitle && key != nil }

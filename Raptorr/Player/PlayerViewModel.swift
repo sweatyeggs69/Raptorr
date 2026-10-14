@@ -1,3 +1,4 @@
+import AVKit
 import Foundation
 import Observation
 import UIKit
@@ -130,6 +131,7 @@ final class PlayerViewModel {
             // Hidden until the seek lands, so the opening frames never flash by.
             videoView.isHidden = true
         }
+        await matchDisplay(to: part)
         player.media = media
         player.play()
 
@@ -147,6 +149,8 @@ final class PlayerViewModel {
         hasFinished = true
         sync()
         player.stop()
+        // Back to the Apple TV's own display mode.
+        displayManager?.preferredDisplayCriteria = nil
 
         let item = item
         let server = server
@@ -173,6 +177,32 @@ final class PlayerViewModel {
                 await TopShelfPublisher(client: client).publish(hubs.flatMap(\.items), server: server)
             }
         }
+    }
+
+    // MARK: - Display
+
+    /// Asks the TV for the video's frame rate and dynamic range (Match Content), then waits
+    /// for the switch: the screen goes dark while it happens, and starting during it lost
+    /// the opening. Without this, 24fps video plays on a 60Hz output and judders.
+    private func matchDisplay(to part: PlexPart) async {
+        guard let stream = part.stream?.first(where: \.isVideo),
+              let criteria = DisplayCriteria.make(for: stream),
+              let manager = displayManager else { return }
+        manager.preferredDisplayCriteria = criteria
+        guard manager.isDisplayCriteriaMatchingEnabled else { return }
+        let deadline = ContinuousClock.now + .seconds(6)
+        // The switch may not report as started right away.
+        try? await Task.sleep(for: .milliseconds(200))
+        while manager.isDisplayModeSwitchInProgress, ContinuousClock.now < deadline, !Task.isCancelled {
+            try? await Task.sleep(for: .milliseconds(100))
+        }
+    }
+
+    private var displayManager: AVDisplayManager? {
+        let window = videoView.window ?? UIApplication.shared.connectedScenes
+            .compactMap { ($0 as? UIWindowScene)?.keyWindow }
+            .first
+        return window?.avDisplayManager
     }
 
     // MARK: - Controls
