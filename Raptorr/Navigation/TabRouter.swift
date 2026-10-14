@@ -16,6 +16,10 @@ final class TabRouter {
     /// another tab's tab bar item goes to Home.
     var isContentFocused = false
 
+    /// How many pushed detail pages are on screen (`PopOnExitModifier` counts them). While
+    /// one is showing, Back belongs to the page, which pops itself.
+    var visibleDetailPages = 0
+
     /// Counts returns to Home from another tab, so Home can start over from its first row
     /// instead of putting focus back on the card it last had.
     private(set) var homeReturns = 0

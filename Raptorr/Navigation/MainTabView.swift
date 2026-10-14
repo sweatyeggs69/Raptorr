@@ -108,10 +108,11 @@ struct MainTabView: View {
         connection.currentServer ?? server
     }
 
-    /// Only set with focus on the tab bar of a tab other than Home; otherwise the system's
-    /// Back applies (content to tab bar, Home's tab bar leaves the app).
+    /// Only set with focus on the tab bar of a tab other than Home, with no detail page
+    /// open; otherwise the page pops itself or the system's Back applies (content to tab
+    /// bar, Home's tab bar leaves the app).
     private var exitAction: (() -> Void)? {
-        if router.isContentFocused || router.selection == .home { return nil }
+        if router.isContentFocused || router.selection == .home || router.visibleDetailPages > 0 { return nil }
         return { router.selection = .home }
     }
 
