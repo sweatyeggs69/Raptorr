@@ -7,7 +7,7 @@ final class SearchViewModel {
     private(set) var results: [Hub] = []
     private(set) var isSearching = false
 
-    /// Only the hub types Raptorr can open.
+    /// Only the hub types Plexiglass can open.
     private static let supportedTypes: Set<String> = ["movie", "show", "season", "episode"]
 
     func search(server: PlexServer, client: PlexAPIClient) async {

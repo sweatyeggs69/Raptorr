@@ -8,7 +8,7 @@ struct SignInView: View {
     var body: some View {
         HStack(spacing: 80) {
             VStack(alignment: .leading, spacing: 32) {
-                Label("Raptorr", systemImage: "play.tv")
+                Label("Plexiglass", systemImage: "play.tv")
                     .font(.largeTitle.bold())
 
                 Text("Sign in with your Plex account")

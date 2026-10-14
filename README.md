@@ -1,4 +1,4 @@
-# Raptorr
+# Plexiglass
 
 Plex client for Apple TV, built for movie and TV libraries.
 
@@ -10,6 +10,6 @@ Plex client for Apple TV, built for movie and TV libraries.
 
 ## Building
 
-Open `Raptorr.xcodeproj` in Xcode 27 and run the `Raptorr` scheme on an Apple TV or the tvOS simulator. Xcode resolves VLCKit through Swift Package Manager on first open.
+Open `Raptorr.xcodeproj` in Xcode 27 and run the `Raptorr` scheme (the project keeps its original name; the app is called Plexiglass) on an Apple TV or the tvOS simulator. Xcode resolves VLCKit through Swift Package Manager on first open.
 
 `plex-api.json` is the Plex Media Server API spec the app is built against.

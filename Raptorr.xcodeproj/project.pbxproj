@@ -351,7 +351,7 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Raptorr/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = Raptorr;
+				INFOPLIST_KEY_CFBundleDisplayName = Plexiglass;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UIUserInterfaceStyle = Automatic;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -384,7 +384,7 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Raptorr/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = Raptorr;
+				INFOPLIST_KEY_CFBundleDisplayName = Plexiglass;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UIUserInterfaceStyle = Automatic;
 				LD_RUNPATH_SEARCH_PATHS = (
