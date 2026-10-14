@@ -13,7 +13,8 @@ struct LetterJumpBar: View {
     @FocusState private var focusedLetter: String?
 
     var body: some View {
-        VStack(spacing: 0) {
+        // A little air between letters; 27 rows of this still fit beside the grid.
+        VStack(spacing: 6) {
             ForEach(letters) { letter in
                 Button {
                     onSelect(letter)
