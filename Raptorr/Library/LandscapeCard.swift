@@ -5,6 +5,8 @@ struct LandscapeCard: View {
     let item: PlexMetadata
     var width: CGFloat = 480
     var onFocus: (() -> Void)?
+    /// The row's focus state, so the row can move focus to this card.
+    var focus: FocusState<String?>.Binding?
 
     var body: some View {
         NavigationLink(value: item) {
@@ -39,6 +41,7 @@ struct LandscapeCard: View {
             .frame(width: width, alignment: .leading)
         }
         .buttonStyle(.focusBorder)
+        .focused(focus, id: item.id)
     }
 
     private var subtitle: String {
