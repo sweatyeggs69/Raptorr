@@ -7,19 +7,8 @@ struct ServerPickerView: View {
     @State private var viewModel = ServerPickerViewModel()
 
     var body: some View {
-        NavigationStack {
-            content
-                .navigationTitle("Choose a Server")
-                .toolbar {
-                    ToolbarItem(placement: .primaryAction) {
-                        Button("Refresh", systemImage: "arrow.clockwise") {
-                            Task { await load() }
-                        }
-                        .disabled(viewModel.isLoading)
-                    }
-                }
-        }
-        .task { await load() }
+        content
+            .task { await load() }
     }
 
     @ViewBuilder
@@ -45,23 +34,53 @@ struct ServerPickerView: View {
                 Button("Sign Out", role: .destructive) { authStore.signOut() }
             }
         } else {
-            List(viewModel.servers) { server in
-                Button {
-                    connection.select(server)
-                } label: {
-                    Label {
-                        VStack(alignment: .leading) {
-                            Text(server.name)
-                            Text(server.owned ? "Owned" : "Shared with you")
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
+            // Same two halves as the system setup screens: what this step is on the left,
+            // the choices on the right.
+            HStack(spacing: 80) {
+                VStack(spacing: 32) {
+                    Image(systemName: "server.rack")
+                        .font(.system(size: 200, weight: .light))
+                        .foregroundStyle(.secondary)
+
+                    Text("Choose a Server")
+                        .font(.title2.bold())
+
+                    Text("Pick the Plex Media Server to watch from. You can change it later in Settings.")
+                        .font(.callout)
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.center)
+                }
+                .frame(maxWidth: .infinity)
+
+                List {
+                    Section {
+                        ForEach(viewModel.servers) { server in
+                            Button {
+                                connection.select(server)
+                            } label: {
+                                LabeledContent {
+                                    Text(server.owned ? "Owned" : "Shared")
+                                } label: {
+                                    Label(server.name, systemImage: "server.rack")
+                                }
+                            }
                         }
-                    } icon: {
-                        Image(systemName: "server.rack")
+                    }
+
+                    Section {
+                        Button("Refresh", systemImage: "arrow.clockwise") {
+                            Task { await load() }
+                        }
+                        .disabled(viewModel.isLoading)
+
+                        Button("Sign Out", systemImage: "rectangle.portrait.and.arrow.right", role: .destructive) {
+                            authStore.signOut()
+                        }
                     }
                 }
+                .frame(maxWidth: .infinity)
             }
-            .frame(maxWidth: 1000)
+            .padding(.horizontal, 80)
         }
     }
 
