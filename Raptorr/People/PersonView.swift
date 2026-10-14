@@ -39,8 +39,8 @@ struct PersonView: View {
                         Text(person.tag ?? "")
                             .font(.title.bold())
 
-                        if let summary = person.summary, !summary.isEmpty {
-                            Text(summary)
+                        if let biography = viewModel.biography {
+                            Text(biography)
                                 .font(.body)
                                 .foregroundStyle(.secondary)
                                 .lineLimit(12)
