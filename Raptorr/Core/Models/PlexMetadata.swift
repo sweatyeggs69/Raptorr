@@ -124,7 +124,8 @@ nonisolated struct PlexMetadata: Decodable, Sendable, Hashable, Identifiable {
 
 // MARK: - Presentation helpers
 
-extension PlexMetadata {
+// Nonisolated like the type itself, so background work (`LibraryPrefetcher`) can use these.
+nonisolated extension PlexMetadata {
     var kind: MetadataKind { MetadataKind(rawValue: type ?? "") ?? .unknown }
 
     /// Poster to show in grids: episodes fall back to their show's poster.

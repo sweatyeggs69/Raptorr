@@ -8,7 +8,7 @@ struct LibraryView: View {
     @Environment(\.plexServer) private var server
     @State private var viewModel = LibraryViewModel()
     @State private var path = NavigationPath()
-    @Environment(\.showHomeTab) private var showHomeTab
+    @Environment(TabRouter.self) private var router
 
     private let columns = [GridItem(.adaptive(minimum: 250), spacing: 48, alignment: .top)]
 
@@ -16,7 +16,7 @@ struct LibraryView: View {
         NavigationStack(path: $path) {
             content
                 // Back at the top level goes to Home rather than closing the app.
-                .onExitCommand { showHomeTab() }
+                .onExitCommand { router.selection = .home }
                 .metadataDestinations()
         }
         // Reloads when the connection moves between local, remote and relay.
@@ -60,4 +60,5 @@ struct LibraryView: View {
 
 #Preview {
     LibraryView(section: LibrarySection(key: "1", type: .movie, title: "Movies"))
+        .environment(TabRouter())
 }
