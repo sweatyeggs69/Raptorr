@@ -12,6 +12,8 @@ struct MainTabView: View {
     @State private var router = TabRouter()
     @State private var activity = BackgroundActivity()
     @State private var isShowingFirstSyncNotice = false
+    /// Bumped by the sync button; each bump runs a full sync whether or not one is due.
+    @State private var syncRequests = 0
     @AppStorage(InterfaceSettings.showsTabIconsKey) private var showsTabIcons = InterfaceSettings.showsTabIconsDefault
 
     var body: some View {
@@ -54,7 +56,9 @@ struct MainTabView: View {
             router.selection = .home
         })
         .overlay(alignment: .topTrailing) {
-            BackgroundActivityIndicator(isRunning: activity.isRunning)
+            SyncButton(isRunning: activity.isRunning) {
+                syncRequests += 1
+            }
         }
         .environment(router)
         .environment(activity)
@@ -64,13 +68,15 @@ struct MainTabView: View {
             await viewModel.loadSections(server: activeServer, client: client)
         }
         // Caches every title's details in the background so detail pages open instantly.
-        .task(id: activeServer.machineIdentifier + "|" + viewModel.sections.map(\.key).joined(separator: ","), priority: .background) {
-            guard !viewModel.sections.isEmpty, LibraryPrefetcher.isDue(for: activeServer) else { return }
+        // The sync button re-runs it on demand, ignoring the schedule.
+        .task(id: activeServer.machineIdentifier + "|" + viewModel.sections.map(\.key).joined(separator: ",") + "|\(syncRequests)", priority: .background) {
+            let force = syncRequests > 0
+            guard !viewModel.sections.isEmpty, force || LibraryPrefetcher.isDue(for: activeServer) else { return }
             if !LibraryPrefetcher.hasRun(for: activeServer) {
                 isShowingFirstSyncNotice = true
             }
             let finished = await activity.track {
-                await LibraryPrefetcher(client: client).run(sections: viewModel.sections, server: activeServer)
+                await LibraryPrefetcher(client: client).run(sections: viewModel.sections, server: activeServer, force: force)
             }
             if finished { activity.libraryDidChange() }
         }

@@ -37,11 +37,12 @@ nonisolated struct LibraryPrefetcher: Sendable {
         return Date.now.timeIntervalSince(last) >= minimumInterval
     }
 
-    /// Runs a full pass when one is due. Returns whether it ran to the end.
+    /// Runs a full pass when one is due, or always with `force`. Returns whether it ran to
+    /// the end.
     @discardableResult
-    func run(sections: [LibrarySection], server: PlexServer) async -> Bool {
+    func run(sections: [LibrarySection], server: PlexServer, force: Bool = false) async -> Bool {
         let defaultsKey = Self.lastRunKeyPrefix + server.machineIdentifier
-        guard Self.isDue(for: server) else { return false }
+        guard force || Self.isDue(for: server) else { return false }
         for section in sections {
             guard !Task.isCancelled else { return false }
             let items = await allItems(in: section, server: server)
