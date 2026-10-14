@@ -42,6 +42,14 @@ struct ShowDetailView: View {
                 }
 
                 episodeList
+
+                if !viewModel.cast.isEmpty {
+                    CastShelf(cast: viewModel.cast)
+                }
+
+                if !viewModel.related.isEmpty {
+                    MediaShelf(title: "Related", items: viewModel.related)
+                }
             }
             .padding(80)
             .frame(maxWidth: .infinity, alignment: .leading)

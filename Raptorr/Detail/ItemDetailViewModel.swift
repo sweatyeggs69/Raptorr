@@ -6,6 +6,8 @@ final class ItemDetailViewModel {
     private(set) var item: PlexMetadata
     /// Episodes use their show's logo, which only the show's own metadata carries.
     private(set) var showLogoPath: String?
+    /// Similar movies, for the "Related" row. Episodes don't get one.
+    private(set) var related: [PlexMetadata] = []
 
     init(item: PlexMetadata) {
         self.item = item
@@ -19,6 +21,14 @@ final class ItemDetailViewModel {
         }
         if let full = try? await client.metadata(server: server, ratingKey: item.ratingKey) {
             item = full
+        }
+        if item.kind == .movie {
+            if related.isEmpty, let cached = try? await client.similar(server: server, ratingKey: item.ratingKey, from: .cache) {
+                related = cached
+            }
+            if let loaded = try? await client.similar(server: server, ratingKey: item.ratingKey), loaded != related {
+                related = loaded
+            }
         }
         if item.kind == .episode, showLogoPath == nil, let showKey = item.grandparentRatingKey {
             let cachedShow = try? await client.metadata(server: server, ratingKey: showKey, from: .cache)
@@ -41,6 +51,8 @@ final class ItemDetailViewModel {
     }
 
     var metadataLine: String { item.infoLine }
+
+    var cast: [PlexTag] { item.role ?? [] }
 
     var creditsLine: String? {
         let genres = (item.genre ?? []).compactMap(\.tag).prefix(3)
