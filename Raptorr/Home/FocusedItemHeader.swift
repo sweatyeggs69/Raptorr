@@ -12,30 +12,17 @@ struct FocusedItemHeader: View {
         // Every slot has a fixed size (the logo box, one line each for the episode title and
         // metadata, three lines of description), so moving between items never shifts anything.
         VStack(alignment: .leading, spacing: HeaderLayout.spacing) {
-            // The title block always takes the height of a logo plus an episode title line,
-            // but its content is bottom aligned: a movie's logo or title text sits right above
-            // the metadata, and the unused episode line becomes space above the logo instead.
-            ZStack(alignment: .bottomLeading) {
-                VStack(alignment: .leading, spacing: HeaderLayout.spacing) {
-                    Color.clear.frame(height: HeaderLayout.logoHeight)
-                    episodeTitle(" ")
-                }
-                .hidden()
+            TitleLogo(
+                title: item.kind == .episode ? (item.grandparentTitle ?? item.title) : item.title,
+                logoPath: logoPath,
+                maxWidth: HeaderLayout.logoWidth,
+                maxHeight: HeaderLayout.logoHeight,
+                isLoading: isLoadingLogo
+            )
 
-                VStack(alignment: .leading, spacing: HeaderLayout.spacing) {
-                    TitleLogo(
-                        title: item.kind == .episode ? (item.grandparentTitle ?? item.title) : item.title,
-                        logoPath: logoPath,
-                        maxWidth: HeaderLayout.logoWidth,
-                        maxHeight: HeaderLayout.logoHeight,
-                        isLoading: isLoadingLogo
-                    )
-
-                    if item.kind == .episode {
-                        episodeTitle(item.title)
-                    }
-                }
-            }
+            // Always present, so the logo never moves when focus goes between a movie and an
+            // episode; a moving logo slid across the rows instead of crossfading.
+            episodeTitle(item.kind == .episode ? item.title : " ")
 
             // The placeholder keeps the line's height when an item has no metadata.
             Text(" ")
