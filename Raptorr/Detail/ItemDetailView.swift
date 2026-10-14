@@ -54,6 +54,12 @@ struct ItemDetailView: View {
                         )
                         .contentTransition(.symbolEffect(.replace))
                     }
+
+                    if let duration = item.durationText {
+                        Text(duration)
+                            .font(.headline)
+                            .foregroundStyle(.secondary)
+                    }
                 }
 
                 if let tagline = item.tagline {
