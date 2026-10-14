@@ -25,7 +25,9 @@ struct SettingsView: View {
                             infoRow("Address", value: server.uri)
                         }
                         Button("Switch Server", systemImage: "server.rack") {
+                            // Leaving the server drops everything cached from it.
                             connection.disconnect()
+                            Task { await client.clearCache() }
                         }
                     }
 

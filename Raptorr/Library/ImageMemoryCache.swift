@@ -20,4 +20,8 @@ nonisolated final class ImageMemoryCache: @unchecked Sendable {
         let pixels = image.size.width * image.size.height * image.scale * image.scale
         cache.setObject(image, forKey: url as NSURL, cost: Int(pixels * 4))
     }
+
+    func removeAll() {
+        cache.removeAllObjects()
+    }
 }

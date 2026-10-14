@@ -14,8 +14,18 @@ nonisolated struct LibraryPrefetcher: Sendable {
     private static let metadataBatchSize = 50
     private static let minimumInterval: TimeInterval = 6 * 60 * 60
 
+    private static let lastRunKeyPrefix = "libraryPrefetch.lastRun."
+
+    /// Forgets when each server was last prefetched, so the next launch warms the cache again.
+    static func resetSchedule() {
+        let defaults = UserDefaults.standard
+        for key in defaults.dictionaryRepresentation().keys where key.hasPrefix(lastRunKeyPrefix) {
+            defaults.removeObject(forKey: key)
+        }
+    }
+
     func run(sections: [LibrarySection], server: PlexServer) async {
-        let defaultsKey = "libraryPrefetch.lastRun.\(server.machineIdentifier)"
+        let defaultsKey = Self.lastRunKeyPrefix + server.machineIdentifier
         if let last = UserDefaults.standard.object(forKey: defaultsKey) as? Date,
            Date.now.timeIntervalSince(last) < Self.minimumInterval {
             return
