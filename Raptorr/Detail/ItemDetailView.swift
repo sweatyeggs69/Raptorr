@@ -63,11 +63,6 @@ struct ItemDetailView: View {
                 }
                 .fullWidthFocusSection()
 
-                if let tagline = item.tagline {
-                    Text(tagline)
-                        .font(.title3.italic())
-                }
-
                 if let summary = item.summary, !summary.isEmpty {
                     Text(summary)
                         .font(.body)
