@@ -7,9 +7,19 @@ struct CastCard: View {
     static let portraitSize: CGFloat = 160
 
     var body: some View {
-        // A button so the focus engine can reach it and scroll the row; there's no
-        // person page to open yet.
-        Button {} label: {
+        // Opens the person page; a cast entry without an id can't be looked up, so it stays
+        // a plain button the focus engine can still reach.
+        if person.personID != nil {
+            NavigationLink(value: person) { label }
+                .buttonStyle(.focusBorder)
+        } else {
+            Button {} label: { label }
+                .buttonStyle(.focusBorder)
+        }
+    }
+
+    private var label: some View {
+        Group {
             VStack(spacing: 12) {
                 ArtworkImage(
                     path: person.thumb,
@@ -34,7 +44,6 @@ struct CastCard: View {
                 .frame(width: Self.portraitSize + 40)
             }
         }
-        .buttonStyle(.focusBorder)
     }
 }
 

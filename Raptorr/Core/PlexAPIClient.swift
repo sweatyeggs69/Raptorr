@@ -208,6 +208,16 @@ nonisolated final class PlexAPIClient: Sendable {
         ).metadata ?? []
     }
 
+    /// One person (actor, director) by tag `id` or `tagKey`.
+    func person(server: PlexServer, id: String, from source: DataSource = .network) async throws -> PlexTag? {
+        try await container(server: server, path: "/library/people/\(id)", source: source).tags?.first
+    }
+
+    /// Every movie, show or episode on the server a person appears in.
+    func personMedia(server: PlexServer, id: String, from source: DataSource = .network) async throws -> [PlexMetadata] {
+        try await container(server: server, path: "/library/people/\(id)/media", source: source).metadata ?? []
+    }
+
     /// Seasons of a show, or episodes of a season. The spec requires paging headers here.
     func children(
         server: PlexServer,
