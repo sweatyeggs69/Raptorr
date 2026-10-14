@@ -164,10 +164,8 @@ nonisolated extension PlexMetadata {
     /// `infoLine` without the season and episode, for places that show S#E# separately.
     var detailsLine: String {
         var parts: [String] = []
-        if let year { parts.append(String(year)) }
         if let contentRating { parts.append(contentRating) }
         if let durationText { parts.append(durationText) }
-        if let resolution = media?.first?.videoResolution { parts.append(resolution.uppercased()) }
         return parts.joined(separator: " · ")
     }
 
