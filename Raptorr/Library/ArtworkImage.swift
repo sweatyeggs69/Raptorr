@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// Plex artwork loaded through the server's photo transcoder.
+/// Plex artwork loaded through the server's photo transcoder, crossfading when it changes.
 struct ArtworkImage: View {
     let path: String?
     let width: Int
@@ -11,20 +11,14 @@ struct ArtworkImage: View {
     @Environment(\.plexServer) private var server
 
     var body: some View {
-        AsyncImage(url: client.artworkURL(server: server, path: path, width: width, height: height)) { phase in
-            if let image = phase.image {
-                image
-                    .resizable()
-                    .scaledToFill()
-            } else {
-                Rectangle()
-                    .fill(.quaternary)
-                    .overlay {
-                        Image(systemName: placeholderSymbol)
-                            .font(.largeTitle)
-                            .foregroundStyle(.secondary)
-                    }
-            }
+        CrossfadeImage(url: client.artworkURL(server: server, path: path, width: width, height: height)) { _ in
+            Rectangle()
+                .fill(.quaternary)
+                .overlay {
+                    Image(systemName: placeholderSymbol)
+                        .font(.largeTitle)
+                        .foregroundStyle(.secondary)
+                }
         }
     }
 }

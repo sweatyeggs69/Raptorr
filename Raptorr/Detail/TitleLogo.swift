@@ -19,6 +19,8 @@ struct TitleLogo: View {
         // so switching between titles never changes the layout around it.
         content
             .frame(width: maxWidth, height: maxHeight, alignment: .bottomLeading)
+            .animation(.easeInOut(duration: 0.35), value: logoPath)
+            .animation(.easeInOut(duration: 0.35), value: isLoading)
     }
 
     @ViewBuilder
@@ -26,23 +28,19 @@ struct TitleLogo: View {
         if isLoading {
             Color.clear
         } else if let url = client.logoURL(server: server, path: logoPath, width: Int(maxWidth * 2), height: Int(maxHeight * 2)) {
-            AsyncImage(url: url) { phase in
-                if let image = phase.image {
-                    // The fitted logo is usually narrower or shorter than the box; pin it to
-                    // the bottom left corner rather than leaving it centered.
-                    image
-                        .resizable()
-                        .scaledToFit()
-                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomLeading)
-                        .accessibilityLabel(title)
-                } else if phase.error != nil {
+            // The fitted logo is usually narrower or shorter than the box; it sits in the
+            // bottom left corner and crossfades when the title changes.
+            CrossfadeImage(url: url, contentMode: .fit, alignment: .bottomLeading) { failed in
+                if failed {
                     titleText
                 } else {
                     Color.clear
                 }
             }
+            .accessibilityLabel(title)
         } else {
             titleText
+                .transition(.opacity)
         }
     }
 
