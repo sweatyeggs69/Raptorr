@@ -15,6 +15,19 @@ struct LetterJumpTests {
         #expect(letters.map(\.offset) == [0, 2, 7])
     }
 
+    @Test func lettersWithoutTitlesAreHidden() {
+        let characters = [
+            FirstCharacter(key: "A", title: "A", size: 2),
+            FirstCharacter(key: "B", title: "B", size: 0),
+            FirstCharacter(key: "C", title: "C", size: 1),
+        ]
+
+        let letters = LetterJump.make(from: characters)
+
+        #expect(letters.map(\.title) == ["A", "C"])
+        #expect(letters.map(\.offset) == [0, 2])
+    }
+
     @Test func lettersFromSortedTitles() {
         let letters = LetterJump.make(fromSortedTitles: ["12 Monkeys", "Alien", "Avatar", "Émilie", "Gattaca", "Zodiac"])
 

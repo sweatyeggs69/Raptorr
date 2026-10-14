@@ -7,10 +7,11 @@ nonisolated struct LetterJump: Sendable, Hashable, Identifiable {
 
     var id: String { title }
 
-    /// Turns per-character counts, in title-sort order, into starting offsets.
+    /// Turns per-character counts, in title-sort order, into starting offsets. Letters the
+    /// server lists with no titles are left out.
     static func make(from characters: [FirstCharacter]) -> [LetterJump] {
         var offset = 0
-        return characters.map { character in
+        return characters.filter { $0.size > 0 }.map { character in
             defer { offset += character.size }
             return LetterJump(title: character.title, offset: offset)
         }
