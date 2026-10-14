@@ -47,6 +47,12 @@ final class PlayerViewModel {
         self.durationMs = request.item.duration ?? 0
         videoView.backgroundColor = .black
         player.drawable = videoView
+        #if DEBUG
+        // VLC's own messages (demuxer, network access), to see where a slow seek waits.
+        let logger = VLCConsoleLogger()
+        logger.level = .info
+        VLCLibrary.shared().loggers = [logger]
+        #endif
     }
 
     var isPlaying: Bool { phase == .playing }
