@@ -56,6 +56,9 @@ struct MainTabView: View {
         }
         .fullScreenCover(item: $playback.request) { request in
             PlayerView(request: request, server: activeServer, client: client)
+                // The cover sits outside the `.environment` above, so it needs the server
+                // again; without it the title logo asked the preview server and never loaded.
+                .environment(\.plexServer, activeServer)
         }
     }
 
